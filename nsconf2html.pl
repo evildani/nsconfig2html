@@ -42,6 +42,12 @@ my %cs_bindings = ();
 my %cs_bindings_target = ();
 my %cs_bindings_all = ();
 
+my %ldapPolicy = ();
+my %ldapAction = ();
+my %vpn_vserver = ();
+my %vpn_pol_bindings = ();
+my %vpn_sta_bindings = ();
+
 my $out;
 open($out, ">" ,"conf.html") or die "Cloud not open output file\n";
 
@@ -50,6 +56,7 @@ open($out, ">" ,"conf.html") or die "Cloud not open output file\n";
 
 
 print $out "<html><head><h2>Currently only LB config is displayed in html table format<h2></head><body>";
+print $out "<h3>Pase in work using the \"Paste Specil...\" and then Unformated Text.<h3>";
 #first pass to detect servers
 #print "IP list:\n";
 open my $info, $file or die "Could not open $file: $!";
@@ -103,11 +110,11 @@ close $info;
 open $info, $file or die "Could not open $file: $!";
 #first pass to detect servers
 #print "Server list:\n";
-print $out "<table border=1pt><tr><td>Server Name</td><td>IP</td>";
+print $out "<table border=0pt><tr><td>Server Name</td><td>IP</td>";
 if($has_td==1){
 print $out "<td>TD</td>";
 }
-print $out "</tr>\n";
+print $out "</tr>";
 while( my $line = <$info>)  {   
    
     if($line =~ /add server/){
@@ -120,7 +127,7 @@ while( my $line = <$info>)  {
         {
         print $out "<td>".$values[5]."</td>";
         }
-        print $out "<tr>\n";
+        print $out "<tr>";
         }
 }
 print $out "</table><br><br>\n";
@@ -323,8 +330,10 @@ close $info;
 open $info, $file or die "Could not open $file: $!";
 
 print "Virtual Server List:\n";
-print $out "Easy copy paste version of VS list:<br><table border=1pt><tr><td>Virtual Server Name</td><td>Category</td><td>Value</td><td>Justificacion</td></tr>\n";
+print $out "The following is the Easy copy paste version, create an empty table in word using the sizes provided.";
+print $out "Easy copy paste version of VS list:<br><table border=1pt><tr><td>erase me</td><td>Virtual Server Name</td><td>Category</td><td>Value</td><td>Justificacion</td></tr>\n";
 #first pass to detect virtual servers
+my $counter = 0;
 while( my $line = <$info>)  {   
    
     if($line =~ /add lb vserver/){
@@ -350,39 +359,39 @@ while( my $line = <$info>)  {
         my $rowspan = 6;
         if(exists $params{"td"}){$rowspan++;}
         $rowspan +=scalar @services;
-        print $out "<tr><td>".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td><td>XX</td></tr>\n";
-        print $out "<tr><td>vs_borrar</td><td>IP</td><td>".$values[5]."</td><td>XX</td></tr>\n";
-        print $out "<tr><td>vs_borrar</td><td>Puerto</td><td>".$values[6]."</td><td>XX</td></tr>\n";
+        print $out "<tr><td>".$counter++."</td><td>".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td><td>XX</td></tr>\n";
+        print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>IP</td><td>".$values[5]."</td><td>XX</td></tr>\n";
+        print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Puerto</td><td>".$values[6]."</td><td>XX</td></tr>\n";
     	############## Add aditional lines if you need more rows with information, 
     	############## params is a hash that uses the key as the -param i.e. -persistenceType without the '-' 
-    	print $out "<tr><<td>vs_borrar</td><td>persistenceType</td><td>".$params{"persistenceType"}."</td><td>XX</td></tr>\n";
+    	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>persistenceType</td><td>".$params{"persistenceType"}."</td><td>XX</td></tr>\n";
     	if(exists $params{"timeout"})
     	{ 
-    	 	print $out "<tr><td>vs_borrar</td><td>Persistence Timeout</td><td>".$params{"timeout"}."</td><td>XX</td></tr>\n";
+    	 	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Persistence Timeout</td><td>".$params{"timeout"}."</td><td>XX</td></tr>\n";
     	 }else{
-    	 	print $out "<tr><td>vs_borrar</td><td>Persistence Timeout</td><td>Default</td><td>XX</td></tr>\n";
+    	 	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Persistence Timeout</td><td>Default</td><td>XX</td></tr>\n";
     	 }
     	if(exists $params{"lbmethod"})
     	{ 
-    		print $out "<tr><td>vs_borrar</td><td>Loadbalance Method</td><td>".$params{"lbmethod"}."</td><td>XX</td></tr>\n";
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Loadbalance Method</td><td>".$params{"lbmethod"}."</td><td>XX</td></tr>\n";
     	}else{
-    		print $out "<tr><td>vs_borrar</td><td>Loadbalance Method</td><td>ROUNDROBIN</td><td>XX</td></tr>\n";
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Loadbalance Method</td><td>ROUNDROBIN</td><td>XX</td></tr>\n";
     	}
     	if(exists $params{"td"})
     	{   		
-    		print $out "<tr><td>vs_borrar</td><td>Traffic Domain</td><td>".$params{"td"}."</td><td>XX</td></tr>\n";
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Traffic Domain</td><td>".$params{"td"}."</td><td>XX</td></tr>\n";
     	}if(exists $params{"backupVServer"})
     	{   		
-    		print $out "<tr><td>vs_borrar</td><td>Backup Virtual Server</td><td>".$params{"backupVServer"}."</td><td>XX</td></tr>\n";
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Backup Virtual Server</td><td>".$params{"backupVServer"}."</td><td>XX</td></tr>\n";
     	}
     	
     	#print "\n++++++++++\n".Dumper(@services)."\n==========\n";
     	for my $i (0 .. @services-1){
     		#print "iteracion: ".$i." VS: ".$values[3]." Services: ".@services[$i]."\n";
     		if ($i==0){ 
-    			print $out "<tr><<td>vs_borrar</td><td>Services</td><td>".$services[$i]."</td><td>XX</td></tr>\n";
+    			print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Services</td><td>".$services[$i]."</td><td>XX</td></tr>\n";
     		}else{
-    			print $out "<tr><td>vs_borrar</td><td>vs_borrar</td><td>".$services[$i]."</td><td>XX</td></tr>\n";	
+    			print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>vs_borrar</td><td>".$services[$i]."</td><td>XX</td></tr>\n";	
     		}
     	}
     	#print "Dump hash".Dumper(\%params)."\n";
@@ -488,7 +497,7 @@ while( my $line = <$info>)  {
     		push @cs_binds,$values[5];
     		$cs_bindings{$values[3]} = \@cs_binds;
     		$cs_bindings_target{$values[3]} = $values[7]; #llena el hash politica-target
-    		print "DANI ".$values[5]." ".$values[7]."\n";
+    		#print "DANI ".$values[5]." ".$values[7]."\n";
     		$cs_bindings_all{$values[5]} = $line;
     	}
     }
@@ -550,4 +559,137 @@ for (keys %cs_bindings){
 }
 print $out "</table><br><br>\n";
 
+print $out "Configuración Access Gateway</p>";
+
+######### Configuración Perfiles de autenticación #############
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>Ldap Policy</td><td>rule</td><td>Action</td></tr>\n";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add authentication ldapPolicy/){
+    	my @values = split(' ',$line);
+    	$ldapPolicy{ $values[3] } = $line; #guarda la lindea
+        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<td>".$values[4]."</td>";
+        print $out "<td>".$values[5]."</td><tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
 close $info; 
+
+######### Configuración Acciones de autenticación #############
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>LDAP Action</td><td>Config Param</td><td>Value</td></tr>\n";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add authentication ldapAction/){
+    	my @values = split(' ',$line);
+    	my %my_ldap_action = extract_params($line);
+    	$ldapAction{ $values[3] } = %my_ldap_action; #store the hash that contains the values... 
+        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<td>Server IP</td><td>".$my_ldap_action{"serverIP"}."</td></tr>";
+        print $out "<tr><td>erase_me</td><td>Base DN</td><td>".$my_ldap_action{"ldapBase"}."</td></tr>";
+    	print $out "<tr><td>erase_me</td><td>Bind DN</td><td>".$my_ldap_action{"ldapBindDn"}."</td></tr>";
+        print $out "<tr><td>erase_me</td><td>Login Attr</td><td>".$my_ldap_action{"ldapLoginName"}."</td></tr>";
+        print $out "<tr><td>erase_me</td><td>Group Attr</td><td>".$my_ldap_action{"groupAttrName"}."</td><tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+
+open $info, $file or die "Could not open $file: $!";
+########seccion para bindings de VPN VSERVER construye objetos##############
+# puede ser de 2 tipos:
+# 1 bind vpn vserver VSRV_AGE -staServer "http://172.18.232.205:8080"
+# 2 bind vpn vserver VSRV_AGE -policy POL_AUTH -priority 100
+#
+while( my $line = <$info>)  {   
+    if($line =~ /bind vpn vserver/){
+    	print "\n".$line."\n";
+        my @values = split(' ',$line); #rompe la linea en arrglo
+        if(exists $vpn_pol_bindings{$values[3]} || exists $vpn_pol_bindings{$values[3]}){ 						#si ya existe
+        	if($values[4] eq "-staServer"){
+        		my @vpn_vs_binds = @{$vpn_sta_bindings{$values[3]}};
+        		print $values[3]." Dumper Test STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
+        		push @vpn_vs_binds,$values[5];
+        		$vpn_sta_bindings{$values[3]} = \@vpn_vs_binds;
+        		print $values[3]." Hago push de ".$values[5]." resulta Dumper Test STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
+
+        	}
+        	elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
+        		my @vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};
+        		print $values[3]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        		push @vpn_vs_pols,$line;
+        		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
+        		print $values[3]." Hago push de ".$values[5]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        	}
+        	else{
+        		print "ERROR in VPN VS Bindings\n";
+        	}
+    	}else{															#no existe y creo todo.
+			#primera itearacion
+			if($values[4] eq "-staServer"){
+        		my @vpn_vs_binds;
+        		push @vpn_vs_binds,$values[5];
+        		$vpn_sta_bindings{$values[3]} = \@vpn_vs_binds;
+        		print $values[3]." Dumper Test STACreate binds\n".Dumper(@vpn_vs_binds)."\n Ref: ".\@vpn_vs_binds."\n";
+        	}
+        	elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
+        		my @vpn_vs_pols;
+        		push @vpn_vs_pols,$line;
+        		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
+        		print $values[3]." Dumper Test POLCreate pols\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        	}
+    	}
+    }
+    
+}
+close $info;
+
+######### Configuración VS VPN #############
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>Virtual Server</td><td>Config Param</td><td>Value</td></tr>\n";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add vpn vserver/){
+    	my @values = split(' ',$line);
+    	my %my_vpn_vs = extract_params($line);
+    	$ldapAction{ $values[3] } = %vpn_vserver; #store the hash that contains the values... 
+        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<td>IP</td><td>".$values[4]."</td></tr>";
+        if(exists $my_vpn_vs{"icaOnly"}){
+        	print $out "<tr><td>erase_me</td><td>Ica Only</td><td>".$my_vpn_vs{"icaOnly"}."</td></tr>";
+        }else{
+        	print $out "<tr><td>erase_me</td><td>Ica Only</td><td>OFF</td></tr>";
+        }
+    	print $out "<tr><td>erase_me</td><td>Max failed Logins</td><td>".$my_vpn_vs{"maxLoginAttempts"}."</td></tr>";
+        print $out "<tr><td>erase_me</td><td>Max Concrr Users</td><td>".$my_vpn_vs{"maxAAAUsers"}."</td></tr>";
+        print $out "<tr><td>erase_me</td><td>cginfraHomePageRedirect</td><td>".$my_vpn_vs{"cginfraHomePageRedirect"}."</td><tr>\n";
+       	#contiene un arreglo de las lineas de politicas (permite diferenciar RW de AUTH de SESS...)
+		my @vpn_vs_binds;
+		my @vpn_vs_pols;
+		if(exists $vpn_sta_bindings{$values[3]}){
+			@vpn_vs_binds = $vpn_sta_bindings{$values[3]};    #contiene un arreglo de los STA
+		}else{
+			@vpn_vs_binds = ();
+		}
+		if(exists $vpn_pol_bindings{$values[3]}){
+        	@vpn_vs_pols = $vpn_pol_bindings{$values[3]};	
+        }else{
+        	@vpn_vs_pols = ();
+        }
+        #$Data::Dumper::Indent = 3;
+		print "VS".$values[3]." - #POLS: ".(scalar @vpn_vs_pols)." - ".Dumper(@vpn_vs_pols)."\n\n";
+		print "VS".$values[3]." - #STAS: ".(scalar @vpn_vs_binds)." - ".Dumper(@vpn_vs_binds)."\n\n";
+
+        	for my $i (0 .. $#vpn_vs_binds){    # foreach my $sta (\@vpn_vs_binds){
+        		print "ARR STAs en i ".$i." es val: ".$vpn_vs_binds[0][$1]."Ref: ".\@vpn_vs_binds."\n";
+        		print $out "<tr><td>erase_me</td><td>STA Server</td><td>".$vpn_vs_binds[0][$1]."</td></tr>\n";
+        	}
+
+         	for my $i (0 .. $#vpn_vs_pols){
+         		print "ARR POLS en i ".$i." es val: ".$vpn_vs_pols[0][$1]."Ref: ".\@vpn_vs_pols."\n";
+        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$vpn_vs_pols[0][$1]."</td></tr>\n";
+        	}
+    }
+}
+print $out "</table><br><br>\n";
