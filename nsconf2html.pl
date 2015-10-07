@@ -604,44 +604,36 @@ open $info, $file or die "Could not open $file: $!";
 #
 while( my $line = <$info>)  {   
     if($line =~ /bind vpn vserver/){
-    	print "\n".$line."\n";
+    	#print "\n".$line."\n";
         my @values = split(' ',$line); #rompe la linea en arrglo
-        if(exists $vpn_pol_bindings{$values[3]} || exists $vpn_pol_bindings{$values[3]}){ 						#si ya existe
-        	if($values[4] eq "-staServer"){
+        if($values[4] eq "-staServer"){
+        	if(exists $vpn_sta_bindings{$values[3]}){
         		my @vpn_vs_binds = @{$vpn_sta_bindings{$values[3]}};
-        		print $values[3]." Dumper Test STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
+        		#print $values[3]." Existe STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
         		push @vpn_vs_binds,$values[5];
         		$vpn_sta_bindings{$values[3]} = \@vpn_vs_binds;
-        		print $values[3]." Hago push de ".$values[5]." resulta Dumper Test STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
-
-        	}
-        	elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
-        		my @vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};
-        		print $values[3]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
-        		push @vpn_vs_pols,$line;
-        		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
-        		print $values[3]." Hago push de ".$values[5]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
-        	}
-        	else{
-        		print "ERROR in VPN VS Bindings\n";
-        	}
-    	}else{															#no existe y creo todo.
-			#primera itearacion
-			if($values[4] eq "-staServer"){
+        		#print $values[3]." Hago push de ".$values[5]." resulta Dumper Test STA binds\n".Dumper(@vpn_vs_binds)."\nRef: ".\@vpn_vs_binds."\n";
+        	}else{
         		my @vpn_vs_binds;
         		push @vpn_vs_binds,$values[5];
         		$vpn_sta_bindings{$values[3]} = \@vpn_vs_binds;
-        		print $values[3]." Dumper Test STACreate binds\n".Dumper(@vpn_vs_binds)."\n Ref: ".\@vpn_vs_binds."\n";
+        		#print $values[3]." NUEVO STACreate binds\n".Dumper(@vpn_vs_binds)."\n Ref: ".\@vpn_vs_binds."\n";
         	}
-        	elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
+        }elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
+        	if(exists $vpn_pol_bindings{$values[3]}){	
+        		my @vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};
+        		print $values[3]." EXISTE POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        		push @vpn_vs_pols,$line;
+        		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
+        		#print $values[3]." Hago push de ".$values[5]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        	}else{                   #si es una polictica guardo la linea
         		my @vpn_vs_pols;
         		push @vpn_vs_pols,$line;
         		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
-        		print $values[3]." Dumper Test POLCreate pols\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        		#print $values[3]." NUEVO POLCreate pols\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
         	}
-    	}
-    }
-    
+        }
+	}
 }
 close $info;
 
@@ -668,27 +660,26 @@ while( my $line = <$info>)  {
 		my @vpn_vs_binds;
 		my @vpn_vs_pols;
 		if(exists $vpn_sta_bindings{$values[3]}){
-			@vpn_vs_binds = $vpn_sta_bindings{$values[3]};    #contiene un arreglo de los STA
+			@vpn_vs_binds = @{$vpn_sta_bindings{$values[3]}};    #contiene un arreglo de los STA
 		}else{
 			@vpn_vs_binds = ();
 		}
 		if(exists $vpn_pol_bindings{$values[3]}){
-        	@vpn_vs_pols = $vpn_pol_bindings{$values[3]};	
+        	@vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};	
         }else{
         	@vpn_vs_pols = ();
         }
         #$Data::Dumper::Indent = 3;
-		print "VS".$values[3]." - #POLS: ".(scalar @vpn_vs_pols)." - ".Dumper(@vpn_vs_pols)."\n\n";
-		print "VS".$values[3]." - #STAS: ".(scalar @vpn_vs_binds)." - ".Dumper(@vpn_vs_binds)."\n\n";
+		#print "VS".$values[3]." - #POLS: ".(scalar @vpn_vs_pols)." - ".Dumper(@vpn_vs_pols)."\n\n";
+		#print "VS".$values[3]." - #STAS: ".(scalar @vpn_vs_binds)." - ".Dumper(@vpn_vs_binds)."\n\n";
 
         	for my $i (0 .. $#vpn_vs_binds){    # foreach my $sta (\@vpn_vs_binds){
-        		print "ARR STAs en i ".$i." es val: ".$vpn_vs_binds[0][$1]."Ref: ".\@vpn_vs_binds."\n";
-        		print $out "<tr><td>erase_me</td><td>STA Server</td><td>".$vpn_vs_binds[0][$1]."</td></tr>\n";
+        		print $out "<tr><td>erase_me</td><td>STA Server</td><td>".$vpn_vs_binds[$1]."</td></tr>\n";
         	}
 
          	for my $i (0 .. $#vpn_vs_pols){
-         		print "ARR POLS en i ".$i." es val: ".$vpn_vs_pols[0][$1]."Ref: ".\@vpn_vs_pols."\n";
-        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$vpn_vs_pols[0][$1]."</td></tr>\n";
+         		my %tmp_pols = extract_params($vpn_vs_pols[$i]);
+        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$tmp_pols{"priority"}."".$tmp_pols{"policy"}."</td></tr>\n";
         	}
     }
 }
