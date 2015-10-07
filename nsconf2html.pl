@@ -45,8 +45,10 @@ my %cs_bindings_all = ();
 my %ldapPolicy = ();
 my %ldapAction = ();
 my %vpn_vserver = ();
-my %vpn_pol_bindings = ();
-my %vpn_sta_bindings = ();
+my %vpn_pol_bindings = ();  #vserver - array(policies bound)
+my %vpn_sta_bindings = ();  #vserver - array(STA servers)
+my %vpn_sesPolicies = ();
+my %vpn_sesAction = ();
 
 my $out;
 open($out, ">" ,"conf.html") or die "Cloud not open output file\n";
@@ -623,12 +625,16 @@ while( my $line = <$info>)  {
         	if(exists $vpn_pol_bindings{$values[3]}){	
         		my @vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};
         		print $values[3]." EXISTE POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
-        		push @vpn_vs_pols,$line;
+        		my %this_policy = extract_params($line);
+        		$vpn_sesPolicies{$this_policy{"policy"}} = \%this_policy; #llena el hash 
+        		push @vpn_vs_pols,$this_policy{"policy"};
         		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
         		#print $values[3]." Hago push de ".$values[5]." Dumper Test POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
         	}else{                   #si es una polictica guardo la linea
         		my @vpn_vs_pols;
-        		push @vpn_vs_pols,$line;
+        		my %this_policy = extract_params($line);
+        		$vpn_sesPolicies{$this_policy{"policy"}} = \%this_policy; #llena el hash 
+        		push @vpn_vs_pols,$this_policy{"policy"};
         		$vpn_pol_bindings{$values[3]} = \@vpn_vs_pols;
         		#print $values[3]." NUEVO POLCreate pols\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
         	}
@@ -678,9 +684,96 @@ while( my $line = <$info>)  {
         	}
 
          	for my $i (0 .. $#vpn_vs_pols){
-         		my %tmp_pols = extract_params($vpn_vs_pols[$i]);
-        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$tmp_pols{"priority"}."".$tmp_pols{"policy"}."</td></tr>\n";
+         		#print "TOTAL Policies: ".Dumper($vpn_vs_pols)."\n";
+         		my $temp = $vpn_vs_pols[$i];
+         		print "POLITICA: ".$temp."\n";
+         		my %curr_pol = %{$vpn_sesPolicies{$temp}};
+         		#print "Otro error: ".Dumper(%curr_pol)."\n";
+        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$curr_pol{"priority"}."".$curr_pol{"policy"}."</td></tr>\n";
         	}
     }
 }
 print $out "</table><br><br>\n";
+
+
+
+#add vpn sessionAction
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add vpn sessionAction/){
+	 	my @values = split(' ',$line);
+    	my %my_vpn_act = extract_params($line);
+	 	$vpn_sesAction{$values[3]} = \%my_vpn_act;
+	 }
+}
+$counter = 2;
+print $out "Session Profiles Configured\n";
+print $out "<table border=1><tr><<td>#</td><td>Session Profile</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
+my $sess_prof;
+print "ERROR: ".Dumper(\%vpn_sesAction)."\n";
+foreach $sess_prof (keys %vpn_sesAction){
+    	print "ERROR: ".Dumper($sess_prof)."\n";
+    	print $out "<tr><td>".$counter++."</td><td><b>".$sess_prof."</b></td><td>Name</td><td>".$sess_prof."</td><td>XX</td></tr>\n";
+    	if(exists $vpn_sesAction{$sess_prof}{"dnsVserverName"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>dnsVserverName</td><td>".$vpn_sesAction{$sess_prof}{"dnsVserverName"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"splitDns"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>splitDns</td><td>".$vpn_sesAction{$sess_prof}{"splitDns"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"splitTunnel"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>splitTunnel</td><td>".$vpn_sesAction{$sess_prof}{"splitTunnel"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"defaultAuthorizationAction"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>defaultAuthorizationAction</td><td>".$vpn_sesAction{$sess_prof}{"defaultAuthorizationAction"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"authorizationGroup"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>authorizationGroup</td><td>".$vpn_sesAction{$sess_prof}{"authorizationGroup"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"ssoCredential"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>ssoCredential</td><td>".$vpn_sesAction{$sess_prof}{"ssoCredential"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"windowsAutoLogon"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>windowsAutoLogon</td><td>".$vpn_sesAction{$sess_prof}{"windowsAutoLogon"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"homePage"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>homePage</td><td>".$vpn_sesAction{$sess_prof}{"homePage"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"icaProxy"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>icaProxy</td><td>".$vpn_sesAction{$sess_prof}{"icaProxy"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"wihome"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>wihome</td><td>".$vpn_sesAction{$sess_prof}{"wihome"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"citrixReceiverHome"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>citrixReceiverHome</td><td>".$vpn_sesAction{$sess_prof}{"citrixReceiverHome"}."</td><td>XX</td></tr>\n";
+    	}
+		if(exists $vpn_sesAction{$sess_prof}{"wiPortalMode"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>wiPortalMode</td><td>".$vpn_sesAction{$sess_prof}{"wiPortalMode"}."</td><td>XX</td></tr>\n";
+    	}
+		if(exists $vpn_sesAction{$sess_prof}{"ClientChoices"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>ClientChoices</td><td>".$vpn_sesAction{$sess_prof}{"ClientChoices"}."</td><td>XX</td></tr>\n";
+    	}
+
+		if(exists $vpn_sesAction{$sess_prof}{"ntDomain"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>ntDomain</td><td>".$vpn_sesAction{$sess_prof}{"ntDomain"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $vpn_sesAction{$sess_prof}{"clientlessVpnMode"})
+    	{ 
+    	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>clientlessVpnMode</td><td>".$vpn_sesAction{$sess_prof}{"clientlessVpnMode"}."</td><td>XX</td></tr>\n";
+    	}
+    	
+}
