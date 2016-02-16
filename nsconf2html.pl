@@ -4,6 +4,8 @@
 use strict;
 use warnings;
 use Data::Dumper;
+use Hash::Merge qw( merge );
+
 
 
 #input the config line, return a hash that the keys are the -someting in the config line
@@ -49,6 +51,11 @@ my %vpn_pol_bindings = ();  #vserver - array(policies bound)
 my %vpn_sta_bindings = ();  #vserver - array(STA servers)
 my %vpn_sesPolicies = ();
 my %vpn_sesAction = ();
+
+my %gslb_sites = ();
+my %gslb_services = ();
+my %gslb_vservers = ();
+my %gslb_vserver_bindings = ();
 
 my $out;
 open($out, ">" ,"conf.html") or die "Cloud not open output file\n";
@@ -653,7 +660,7 @@ while( my $line = <$info>)  {
     	my %my_vpn_vs = extract_params($line);
     	$ldapAction{ $values[3] } = %vpn_vserver; #store the hash that contains the values... 
         print $out "<tr><td>".$values[3]."</td>";
-        print $out "<td>IP</td><td>".$values[4]."</td></tr>";
+        print $out "<td>IP</td><td>".$values[5]."</td></tr>";
         if(exists $my_vpn_vs{"icaOnly"}){
         	print $out "<tr><td>erase_me</td><td>Ica Only</td><td>".$my_vpn_vs{"icaOnly"}."</td></tr>";
         }else{
@@ -696,6 +703,23 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 
 
+######### Configuración Politicas-Perfiles de session #############
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>Policy</td><td>rule</td><td>Action</td></tr>\n";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add vpn sessionPolicy/){
+    	my @values = split(' ',$line);
+    	$ldapPolicy{ $values[3] } = $line; #guarda la lindea
+        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<td>".$line."</td>";
+        print $out "<td>".$values[5]."</td><tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+close $info; 
+
+
 
 #add vpn sessionAction
 open $info, $file or die "Could not open $file: $!";
@@ -710,7 +734,6 @@ $counter = 2;
 print $out "Session Profiles Configured\n";
 print $out "<table border=1><tr><<td>#</td><td>Session Profile</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
 my $sess_prof;
-print "ERROR: ".Dumper(\%vpn_sesAction)."\n";
 foreach $sess_prof (keys %vpn_sesAction){
     	print "ERROR: ".Dumper($sess_prof)."\n";
     	print $out "<tr><td>".$counter++."</td><td><b>".$sess_prof."</b></td><td>Name</td><td>".$sess_prof."</td><td>XX</td></tr>\n";
@@ -775,5 +798,132 @@ foreach $sess_prof (keys %vpn_sesAction){
     	{ 
     	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>clientlessVpnMode</td><td>".$vpn_sesAction{$sess_prof}{"clientlessVpnMode"}."</td><td>XX</td></tr>\n";
     	}
-    	
 }
+
+
+##### GSLB
+
+#add gslb sites add gslb site GSLB_ASC_SITE 10.128.70.245 -publicIP 10.128.70.245
+print $out "<table border=1><tr><td>GSLB Site</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add gslb site/){
+	 	my @values = split(' ',$line);
+	 	print $out "<tr><td>".$values[3]."</td><td>erase_me</td><td>erase_me</td><td>erase_me</td></tr>";
+	 	print $out "<tr><td>erase_me</td><td>";
+	 	if(($values[4]) =~ /^\d/ )	{  ##starts with number the IP, otherwise is site type
+	 		print $out "IP</td><td>".$values[4]."</td><td>erase_me</td></tr>";   ##optional Type
+	 	}
+	 	else{
+	 		print $out "Type</td><td>".$values[4]."</td><td>erase_me</td></tr>";   ##optional Type
+	 	}
+	 	print $out "<tr><td>erase_me</td><td>".$values[5]."<td>".$values[6]."</td><td>erase_me</td></tr>";   ##Can be type or IP
+	 }
+}
+print $out "<\table>\n";
+close $info;
+
+
+#add gslb services add gslb service GSLB_SVC_WILDCARDAUTH_MYVIRTUALWORKPLACE_ASC 172.31.4.56 SSL 443 -publicIP 172.31.4.56 -publicPort 443 -maxClient 0 -siteName GSLB_SITE_ASC -cltTimeout 180 -svrTimeout 360 -downStateFlush DISABLED
+print $out "<table border=1><tr><td>GSLB Sercice</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add gslb service/){
+	 	my @values = split(' ',$line);
+	 	my %my_gslb_services = extract_params($line);
+	 	$gslb_services{$values[3]} = \%my_gslb_services;
+		print $out "<tr><td>".$values[3]."</td><td>IP</td><td>".$values[4]."</td><td>";
+		if($values[4]=~ /^\d/){
+			print $out "erase_me";
+		}else{
+			print $out "Is remote service and server was not created using IP-IP but Name-IP\n";
+		}
+		print $out "</td></tr>";
+		print $out "<tr><td>erase_me</td><td>Type</td><td>".$values[5]."</td><td>erase_me</td></tr>";
+		print $out "<tr><td>erase_me</td><td>Port</td><td>".$values[6]."</td><td>erase_me</td></tr>";
+		print $out "<tr><td>erase_me</td><td>publicIP</td><td>".$gslb_services{$values[3]}{"publicIP"}."</td><td>erase_me</td></tr>";
+		print $out "<tr><td>erase_me</td><td>publicPort</td><td>".$gslb_services{$values[3]}{"publicPort"}."</td><td>erase_me</td></tr>";
+		print $out "<tr><td>erase_me</td><td>siteName</td><td>".$gslb_services{$values[3]}{"siteName"}."</td><td>erase_me</td></tr>";
+		#print $line."\n\n";
+	 }
+}
+print $out "<\table>\n";
+close $info;
+
+#TODO: the add gslb line is also included in the hash that contains all elements! this need to be resolved.
+#add gslb vservers add gslb vserver GSLB_INV_SF_PROD_vsrv SSL -backupLBMethod ROUNDROBIN -tolerance 0 -appflowLog DISABLED
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add gslb vserver/){
+	 	my @values = split(' ',$line);
+    	my %my_gslb_vservers = extract_params($line);
+    	#print $line."\n\n";
+    	#print Dumper(%my_gslb_vservers);
+    	my $gslb_vs = $values[3];
+	 	$gslb_vservers{$gslb_vs} = \%my_gslb_vservers;
+	 }
+}
+close $info;
+#this line will find the set gslb vserver command and append all params to the already existing add gslb vserver hash
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /set gslb vserver/){
+	 	my @values = split(' ',$line);
+    	my %my_gslb_vservers = extract_params($line);
+    	#my %original = $gslb_vservers{$values[3]};
+	 	$gslb_vservers{$values[3]} = merge($gslb_vservers{$values[3]}, %my_gslb_vservers);
+	 }
+}
+close $info;
+
+#this will find the bind gslb vserver
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /bind gslb vserver/){
+	 	my @values = split(' ',$line);
+		#gslb_vserver_bindings
+		#bind gslb vserver GSLB_INV_SF_PROD_vsrv -serviceName GSLB_INV_SF_PROD_svc
+		#if serviceName add to vserver binding array
+		#bind gslb vserver GSLB_INV_EPIC-P-HSWEB_PROD_vsrv -domainName epic-p-hsweb.intgslb.centura.org -TTL 5
+		#if domainName add to vserver hash with manually created hash.
+		if($values[4] eq "-serviceName"){
+			if(exists $gslb_vserver_bindings{$values[3]}){
+        		my @gslb_vs_binds = @{$gslb_vserver_bindings{$values[3]}};
+        		push @gslb_vs_binds,$values[5];
+        		$gslb_vserver_bindings{$values[3]} = \@gslb_vs_binds;
+        	}
+        	else{
+        		my @gslb_vs_binds;
+        		push @gslb_vs_binds,$values[5];
+        		$gslb_vserver_bindings{$values[3]} = \@gslb_vs_binds;
+        	}
+		}
+		if($values[4] eq "-domainName"){
+			$gslb_vservers{$values[3]}{$values[4]} = $values[5];
+			print Dumper($gslb_vservers{$values[3]});
+		}
+
+	 }
+}
+close $info;
+
+#used to print the glsb vservers
+#gslb_vservers
+#add gslb vserver GSLB_INV_EPIC-P-HSWEB_PROD_vsrv SSL -backupLBMethod ROUNDROBIN -tolerance 0 -appflowLog DISABLED
+#found in %gslb_vserver_bindings has an array inside
+#bind gslb vserver GSLB_ASC_EPIC-P-HSWEB_PROD_vsrv -serviceName GSLB_ASC_EPIC-P-HSWEB
+#found in gslb_vservers{"$values[3]"}{"-domainName"}
+#bind gslb vserver GSLB_INV_EPIC-P-HSWEB_PROD_vsrv -domainName epic-p-hsweb.intgslb.centura.org -TTL 5
+print $out "<table border=1><tr><td>GSLB Vserver</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add gslb vserver/){
+	 	my @values = split(' ',$line);
+	 	print $out "<tr><td>".$values[3]."</td><td>Type</td><td>".$values[4]."</td><td>erase_me</td></tr>";
+	 	foreach  (keys $gslb_vservers{$values[3]}){
+	 			print $out "<tr><td>erase_me</td><td>".$_."</td><td>".$gslb_vservers{$values[3]}{$_}."</td><td>erase_me</td></tr>\n"; 
+	 	}
+	 }
+}
+print $out "<\table>\n";
+close $info; 
