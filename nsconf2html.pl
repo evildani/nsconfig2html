@@ -8,6 +8,7 @@ use Hash::Merge qw( merge );
 
 
 
+
 #input the config line, return a hash that the keys are the -someting in the config line
 sub extract_params{
 		my $line = $_[0];
@@ -799,10 +800,14 @@ foreach $sess_prof (keys %vpn_sesAction){
     	 	print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>clientlessVpnMode</td><td>".$vpn_sesAction{$sess_prof}{"clientlessVpnMode"}."</td><td>XX</td></tr>\n";
     	}
 }
-
+print $out "</table>\n";
 
 ##### GSLB
 
+print $out "GSLB</p>";
+
+
+print $out "GSLB Site</p>";
 #add gslb sites add gslb site GSLB_ASC_SITE 10.128.70.245 -publicIP 10.128.70.245
 print $out "<table border=1><tr><td>GSLB Site</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
 open $info, $file or die "Could not open $file: $!";
@@ -820,10 +825,10 @@ while( my $line = <$info>)  {
 	 	print $out "<tr><td>erase_me</td><td>".$values[5]."<td>".$values[6]."</td><td>erase_me</td></tr>";   ##Can be type or IP
 	 }
 }
-print $out "<\table>\n";
+print $out "</table>\n";
 close $info;
 
-
+print $out "GSLB Service</p>";
 #add gslb services add gslb service GSLB_SVC_WILDCARDAUTH_MYVIRTUALWORKPLACE_ASC 172.31.4.56 SSL 443 -publicIP 172.31.4.56 -publicPort 443 -maxClient 0 -siteName GSLB_SITE_ASC -cltTimeout 180 -svrTimeout 360 -downStateFlush DISABLED
 print $out "<table border=1><tr><td>GSLB Sercice</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
 open $info, $file or die "Could not open $file: $!";
@@ -847,7 +852,7 @@ while( my $line = <$info>)  {
 		#print $line."\n\n";
 	 }
 }
-print $out "<\table>\n";
+print $out "</table>\n";
 close $info;
 
 #TODO: the add gslb line is also included in the hash that contains all elements! this need to be resolved.
@@ -857,6 +862,7 @@ while( my $line = <$info>)  {
 	 if($line =~ /add gslb vserver/){
 	 	my @values = split(' ',$line);
     	my %my_gslb_vservers = extract_params($line);
+    	print "Dumper add: ".Dumper(%my_gslb_vservers);
     	#print $line."\n\n";
     	#print Dumper(%my_gslb_vservers);
     	my $gslb_vs = $values[3];
@@ -870,8 +876,15 @@ while( my $line = <$info>)  {
 	 if($line =~ /set gslb vserver/){
 	 	my @values = split(' ',$line);
     	my %my_gslb_vservers = extract_params($line);
-    	#my %original = $gslb_vservers{$values[3]};
-	 	$gslb_vservers{$values[3]} = merge($gslb_vservers{$values[3]}, %my_gslb_vservers);
+    	#print "Dumper ARRAY: ".Dumper(@values);
+    	#print "Dumper HASH: ".Dumper(%my_gslb_vservers);
+    	my %original = \$gslb_vservers{$values[3]};
+    	foreach  (keys %my_gslb_vservers){
+    		print "KEY ".$_." VAL ".$my_gslb_vservers{$_}."\n";
+	 		$original{$_} = $my_gslb_vservers{$_};
+	 	}
+	 	$gslb_vservers{$values[3]} = \%original;
+	 	
 	 }
 }
 close $info;
@@ -900,13 +913,14 @@ while( my $line = <$info>)  {
 		}
 		if($values[4] eq "-domainName"){
 			$gslb_vservers{$values[3]}{$values[4]} = $values[5];
-			print Dumper($gslb_vservers{$values[3]});
+			#print Dumper($gslb_vservers{$values[3]});
 		}
 
 	 }
 }
 close $info;
 
+print $out "GSLB Vserver</p>";
 #used to print the glsb vservers
 #gslb_vservers
 #add gslb vserver GSLB_INV_EPIC-P-HSWEB_PROD_vsrv SSL -backupLBMethod ROUNDROBIN -tolerance 0 -appflowLog DISABLED
@@ -923,7 +937,14 @@ while( my $line = <$info>)  {
 	 	foreach  (keys $gslb_vservers{$values[3]}){
 	 			print $out "<tr><td>erase_me</td><td>".$_."</td><td>".$gslb_vservers{$values[3]}{$_}."</td><td>erase_me</td></tr>\n"; 
 	 	}
+	 	#services bound, can be improved, see line 893
+	 	#print Dumper($gslb_vserver_bindings{$values[3]});
+	 	my @gslb_services = $gslb_vserver_bindings{$values[3]};
+	 	foreach my $i (0 .. $#gslb_services){
+	 		print $out "<tr><td>erase_me</td><td>Service</td><td>".$gslb_services[$i][0]."</td><td>erase_me</td></tr>\n"; 
+	 	}
 	 }
+	 
 }
-print $out "<\table>\n";
+print $out "</table>\n";
 close $info; 
