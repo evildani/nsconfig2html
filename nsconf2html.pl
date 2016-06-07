@@ -28,9 +28,7 @@ sub extract_params{
 
 
 my $file = $ARGV[0];
-if($file !~ /conf/){
-die "Not a valid argumet\n";
-}
+
 
 my %td = ();
 my $has_td = 0;
@@ -78,7 +76,42 @@ while( my $line = <$info>)  {
     	$ips{ $values[3] } = $line; #3 es IP, 4 es netmask y 5 en aldelante son parms
         #print $values[3]."\n";
         print $out "<tr><td>".$values[3]."</td>";
-        print $out "<td>".$values[4]."</td><tr>\n";
+        print $out "<td>".$values[4]." ".$values[5]." ".$values[6]." ".$values[7]." ".$values[8]."</td><tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>vlan</td><td>Interface-ip</td><td>Tagged-Netmask</td></tr>\n";
+while( my $line = <$info>)  {   
+   #bind vlan 400 -ifnum LA/2
+    if($line =~ /bind vlan/){
+    	my @values = split(' ',$line);
+    	$ips{ $values[3] } = $line; #3 es IP, 4 es netmask y 5 en aldelante son parms
+        #print $values[3]."\n";
+        print $out "<tr><td>".$values[2]."</td>";
+        print $out "<td>".$values[3]." ".$values[4]."</td>";
+        print $out "<td>".$values[5]." ".$values[6]."</td>";
+        print $out "</tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>Network</td><td>Mask</td><td>Gateway</td></tr>\n";
+while( my $line = <$info>)  {   
+   #bind vlan 400 -ifnum LA/2
+    if($line =~ /add route/){
+    	my @values = split(' ',$line);
+    	$ips{ $values[3] } = $line; #3 es IP, 4 es netmask y 5 en aldelante son parms
+        #print $values[3]."\n";
+        print $out "<tr><td>".$values[2]."</td>";
+        print $out "<td>".$values[3]."</td>";
+        print $out "<td>".$values[4]."</td>";
+        print $out "</tr>\n";
         }
 }
 print $out "</table><br><br>\n";
@@ -152,6 +185,8 @@ print $out "<td>TD</td>";
 print $out "</tr>";
 while( my $line = <$info>)  {   
    
+   #add service EXTDNS2 KNXEXTDNS02 DNS 53 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport NO -sp OFF -cltTimeout 120 -svrTimeout 120 -CKA YES -TCPB YES -CMP NO
+
     if($line =~ /add service/){
     	my @values = split(' ',$line);
     	my %svc_params = extract_params($line);
@@ -170,7 +205,49 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 
 
+
 close $info;
+open $info, $file or die "Could not open $file: $!";
+
+#   #add serviceGroup "Ext_Prod_Ex2013_ActiveSync" SSL -maxClient 0 -maxReq 0 -cacheable YES -cip DISABLED -usip NO -useproxyport NO -cltTimeout 180 -svrTimeout 360 -CKA YES -TCPB NO -CMP NO
+#print "ServiceGroups:\n";
+print $out "<table border=1pt><tr><td>Service Group</td><td>Protocol</td><td>USIP</td></tr>";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add serviceGroup/){
+    	my @values = split(' ',$line);
+    	my %svc_params = extract_params($line);
+    	$service{ $values[2] } = $line;
+        #print $values[2]."\n";
+        print $out "<tr><td>".$values[2]."</td>";
+        print $out "<td>".$values[3]."</td>";
+        print $out "<td>".$values[13]."</td>";
+        print $out "</tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+open $info, $file or die "Could not open $file: $!";
+
+#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
+
+
+print $out "<table border=1pt><tr><td>Name</td><td>TYPE</td><td>GET</td><td>Response</td></tr>";
+while( my $line = <$info>)  {   
+   
+    if($line =~ /add lb monitor/){
+    	my @values = split(' ',$line);
+        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<td>".$values[4]."</td>";
+        print $out "<td>".$values[7]."</td>";
+        print $out "<td>".$values[9]."</td>";
+        print $out "</tr>\n";
+        }
+}
+print $out "</table><br><br>\n";
+close $info;
+
 open $info, $file or die "Could not open $file: $!";
 
 
@@ -181,11 +258,17 @@ while( my $line = <$info>)  {
     if($line =~ /bind lb vserver/){
         my @values = split(' ',$line);
         if(exists $bindings{$values[3]}){
+        	if($values[4] eq "-policyName"){
+        		$values[4] = $values[4]." ".$values[5]." ".$values[6]." ".$values[7];
+        	}
         	my @svcs = @{$bindings{$values[3]}};
         	push @svcs,$values[4];
     		$bindings{$values[3]} = \@svcs;
     	}else{
     		my @svcs;
+    		if($values[4] eq "-policyName"){
+        		$values[4] = $values[4]." ".$values[5]." ".$values[6]." ".$values[7];
+        	}
     		push @svcs,$values[4];
     		$bindings{$values[3]} = \@svcs;
     	}
@@ -282,52 +365,80 @@ while( my $line = <$info>)  {
     	$rowspan++;
     	#print "6 persistenceType RowSpan para ".$values[3]." es de ".$rowspan."\n";
     	}
+    	if(exists $params{"Authentication"})
+    	{   		
+			$rowspan++;    	
+		}
+    	if(exists $params{"AuthenticationHost"})
+    	{   		
+			$rowspan++;    	
+		}  	
+    	if(exists $params{"authnProfile"})
+    	{   		
+			$rowspan++;
+    	}
         #####################################################
         #print "7 Se va a incrementar RowSpan de ".$values[3]." en ".scalar @services."\n";
         $rowspan += scalar @services;
         #print "RowSpan para ".$values[3]." es de ".$rowspan."\n";
-        print $out "<tr><td rowspan=".$rowspan.">".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td></tr>\n";
-        print $out "<tr><td>IP</td><td>".$values[5]."</td></tr>\n";
-        print $out "<tr><td>Puerto</td><td>".$values[6]."</td></tr>\n";
+        # TODO solve this print $out "<tr><td rowspan=".$rowspan.">".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td></tr>\n";
+        print $out "<tr><td>".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td></tr>\n";
+
+        print $out "<tr><td>erase_me</td><td>IP</td><td>".$values[5]."</td></tr>\n";
+        print $out "<tr><td>erase_me</td><td>Puerto</td><td>".$values[6]."</td></tr>\n";
     	############## Add aditional lines if you need more rows with information, 
     	############## params is a hash that uses the key as the -param i.e. -persistenceType without the '-' 
     	if(exists $params{"persistenceType"})
     	{ 
-    		print $out "<tr><td>persistenceType</td><td>".$params{"persistenceType"}."</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>persistenceType</td><td>".$params{"persistenceType"}."</td></tr>\n";
     	}
     	if(exists $params{"timeout"})
     	{ 
-    	 	print $out "<tr><td>Persistence Timeout</td><td>".$params{"timeout"}."</td></tr>\n";
+    	 	print $out "<tr><td>erase_me</td><td>Persistence Timeout</td><td>".$params{"timeout"}."</td></tr>\n";
     	 }else{
-    	 	print $out "<tr><td>Persistence Timeout</td><td>UNDEF</td></tr>\n";
+    	 	print $out "<tr><td>erase_me</td><td>Persistence Timeout</td><td>UNDEF</td></tr>\n";
     	 }
     	if(exists $params{"lbmethod"})
     	{ 
-    		print $out "<tr><td>Loadbalance Method</td><td>".$params{"lbmethod"}."</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>Loadbalance Method</td><td>".$params{"lbmethod"}."</td></tr>\n";
     	}else{
-    		print $out "<tr><td>Loadbalance Method</td><td>ROUNDROBIN</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>Loadbalance Method</td><td>ROUNDROBIN</td></tr>\n";
     	}
     	if(exists $params{"td"})
     	{   		
-    		print $out "<tr><td>Traffic Domain</td><td>".$params{"td"}."</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>Traffic Domain</td><td>".$params{"td"}."</td></tr>\n";
     	}
     	if(exists $params{"cltTimeout"})
     	{   		
-    		print $out "<tr><td>Client Timeout</td><td>".$params{"cltTimeout"}."</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>Client Timeout</td><td>".$params{"cltTimeout"}."</td></tr>\n";
     	}
     	if(exists $params{"backupVServer"})
     	{   		
-    		print $out "<tr><td>Back Up VServer</td><td>".$params{"backupVServer"}."</td></tr>\n";
+    		print $out "<tr><td>erase_me</td><td>Back Up VServer</td><td>".$params{"backupVServer"}."</td></tr>\n";
     	}
+    	if(exists $params{"Authentication"})
+    	{   		
+    		print $out "<tr><td>erase_me</td><td>Authentication</td><td>".$params{"Authentication"}."</td></tr>\n";
+    	}
+    	if(exists $params{"AuthenticationHost"})
+    	{   		
+    		print $out "<tr><td>erase_me</td><td>Authentication Host</td><td>".$params{"AuthenticationHost"}."</td></tr>\n";
+    	}  	
+    	if(exists $params{"authnProfile"})
+    	{   		
+    		print $out "<tr><td>erase_me</td><td>Authentication Profile</td><td>".$params{"authnProfile"}."</td></tr>\n";
+    	}
+    	
+    	
     	
     	
     	#print "\n++++++++++\n".Dumper(@services)."\n==========\n";
     	for my $i (0 .. @services-1){
     		#print "iteracion: ".$i." VS: ".$values[3]." Services: ".@services[$i]."\n";
     		if ($i==0){ 
-    			print $out "<tr><td rowspan=".scalar @services.">Services</td><td>".$services[$i]."</td></tr>\n";
+    			print $out "<tr><td>".$values[3]."</td><td rowspan=".scalar @services.">Services</td><td>".$services[$i]."</td></tr>\n";
     		}else{
-    			print $out "<tr><td>".$services[$i]."</td></tr>\n";	
+    			print $out "<tr><td>".$values[3]."</td><td>".$services[$i]."</td></tr>\n";	
     		}
     	}
     	#print "END\n";
@@ -393,6 +504,18 @@ while( my $line = <$info>)  {
     	}if(exists $params{"backupVServer"})
     	{   		
     		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Backup Virtual Server</td><td>".$params{"backupVServer"}."</td><td>XX</td></tr>\n";
+    	}    	
+    	if(exists $params{"Authentication"})
+    	{   		
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Authentication</td><td>".$params{"Authentication"}."</td><td>XX</td></tr>\n";
+    	}
+    	if(exists $params{"AuthenticationHost"})
+    	{   		
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Authentication Host</td><td>".$params{"AuthenticationHost"}."</td><td>XX</td></tr>\n";
+    	}  	
+    	if(exists $params{"authnProfile"})
+    	{   		
+    		print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Authentication Profile</td><td>".$params{"authnProfile"}."</td><td>XX</td></tr>\n";
     	}
     	
     	#print "\n++++++++++\n".Dumper(@services)."\n==========\n";
@@ -862,8 +985,8 @@ while( my $line = <$info>)  {
 	 if($line =~ /add gslb vserver/){
 	 	my @values = split(' ',$line);
     	my %my_gslb_vservers = extract_params($line);
-    	print "Dumper add: ".Dumper(%my_gslb_vservers);
-    	#print $line."\n\n";
+    	print "Dumper add GSLB: ".Dumper(%my_gslb_vservers);
+    	print $line."\n\n";
     	#print Dumper(%my_gslb_vservers);
     	my $gslb_vs = $values[3];
 	 	$gslb_vservers{$gslb_vs} = \%my_gslb_vservers;
@@ -883,8 +1006,9 @@ while( my $line = <$info>)  {
     		print "KEY ".$_." VAL ".$my_gslb_vservers{$_}."\n";
 	 		$original{$_} = $my_gslb_vservers{$_};
 	 	}
+	 	print "Dumper ".Dumper(%my_gslb_vservers)."\n";
 	 	$gslb_vservers{$values[3]} = \%original;
-	 	
+	 	print $line."\n\n";
 	 }
 }
 close $info;
