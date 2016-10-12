@@ -382,10 +382,10 @@ while( my $line = <$info>)  {
         $rowspan += scalar @services;
         #print "RowSpan para ".$values[3]." es de ".$rowspan."\n";
         # TODO solve this print $out "<tr><td rowspan=".$rowspan.">".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td></tr>\n";
-        print $out "<tr><td>".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td></tr>\n";
+        print $out "<tr><td>".$values[3]."</td><td>Type</td><td>".$values[4]."</td></tr>\n";
 
         print $out "<tr><td>erase_me</td><td>IP</td><td>".$values[5]."</td></tr>\n";
-        print $out "<tr><td>erase_me</td><td>Puerto</td><td>".$values[6]."</td></tr>\n";
+        print $out "<tr><td>erase_me</td><td>Port</td><td>".$values[6]."</td></tr>\n";
     	############## Add aditional lines if you need more rows with information, 
     	############## params is a hash that uses the key as the -param i.e. -persistenceType without the '-' 
     	if(exists $params{"persistenceType"})
@@ -471,7 +471,7 @@ while( my $line = <$info>)  {
     	   	@services =  @{$bindings{$values[3]}};
     	}
     	else{
-    		print "VS: ".$values[3]." NO TIENE SERVICIOS\n";
+    		print "VS: ".$values[3]." No services\n";
     	}
     	#print "Dump arr".Dumper(@services)."\n";
 
@@ -480,12 +480,12 @@ while( my $line = <$info>)  {
         my $rowspan = 6;
         if(exists $params{"td"}){$rowspan++;}
         $rowspan +=scalar @services;
-        print $out "<tr><td>".$counter++."</td><td>".$values[3]."</td><td>Tipo</td><td>".$values[4]."</td><td>XX</td></tr>\n";
+        print $out "<tr><td>".$counter++."</td><td>".$values[3]."</td><td>Type</td><td>".$values[4]."</td><td>XX</td></tr>\n";
         print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>IP</td><td>".$values[5]."</td><td>XX</td></tr>\n";
-        print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Puerto</td><td>".$values[6]."</td><td>XX</td></tr>\n";
+        print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Port</td><td>".$values[6]."</td><td>XX</td></tr>\n";
     	############## Add aditional lines if you need more rows with information, 
     	############## params is a hash that uses the key as the -param i.e. -persistenceType without the '-' 
-    	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>persistenceType</td><td>".$params{"persistenceType"}."</td><td>XX</td></tr>\n";
+    	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Persistence Type</td><td>".$params{"persistenceType"}."</td><td>XX</td></tr>\n";
     	if(exists $params{"timeout"})
     	{ 
     	 	print $out "<tr><td>".$counter++."</td><td>vs_borrar</td><td>Persistence Timeout</td><td>".$params{"timeout"}."</td><td>XX</td></tr>\n";
@@ -755,7 +755,7 @@ while( my $line = <$info>)  {
         }elsif ($values[4] eq "-policy"){                   #si es una polictica guardo la linea
         	if(exists $vpn_pol_bindings{$values[3]}){	
         		my @vpn_vs_pols = @{$vpn_pol_bindings{$values[3]}};
-        		print $values[3]." EXISTE POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
+        		#print $values[3]." EXISTE POL pol\n".Dumper(@vpn_vs_pols)."\n Ref: ".\@vpn_vs_pols."\n";
         		my %this_policy = extract_params($line);
         		$vpn_sesPolicies{$this_policy{"policy"}} = \%this_policy; #llena el hash 
         		push @vpn_vs_pols,$this_policy{"policy"};
