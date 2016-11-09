@@ -82,6 +82,7 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 close $info;
 
+############# bind vlan ####################
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>vlan</td><td>Interface-ip</td><td>Tagged-Netmask</td></tr>\n";
 while( my $line = <$info>)  {   
@@ -100,6 +101,7 @@ print $out "</table><br><br>\n";
 close $info;
 
 
+############## add route #########################
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>Network</td><td>Mask</td><td>Gateway</td></tr>\n";
 while( my $line = <$info>)  {   
@@ -117,7 +119,7 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 close $info;
 
-#print "Traffic Domains:\n";
+##########################print "Traffic Domains:\n";
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>Traffic Domain</td><td>Alias</td></tr>\n";
 while( my $line = <$info>)  {   
@@ -134,7 +136,7 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 close $info;
 
-
+############# HA NODE ##########
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>Node ID</td><td>IP</td></tr>\n";
 while( my $line = <$info>)  {   
@@ -149,7 +151,7 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 close $info;
 
-
+############### SERVER ####################
 open $info, $file or die "Could not open $file: $!";
 #first pass to detect servers
 #print "Server list:\n";
@@ -177,7 +179,7 @@ print $out "</table><br><br>\n";
 close $info;
 open $info, $file or die "Could not open $file: $!";
 
-#print "Service List:\n";
+###################### SERVICE ##################
 print $out "<table border=1pt><tr><td>Service Name</td><td>Server</td><td>Port</td><td>Protocol</td>";
 if($has_td==1){
 print $out "<td>TD</td>";
@@ -210,7 +212,7 @@ close $info;
 open $info, $file or die "Could not open $file: $!";
 
 #   #add serviceGroup "Ext_Prod_Ex2013_ActiveSync" SSL -maxClient 0 -maxReq 0 -cacheable YES -cip DISABLED -usip NO -useproxyport NO -cltTimeout 180 -svrTimeout 360 -CKA YES -TCPB NO -CMP NO
-#print "ServiceGroups:\n";
+##################### SERVICE GROUP ######################
 print $out "<table border=1pt><tr><td>Service Group</td><td>Protocol</td><td>USIP</td></tr>";
 while( my $line = <$info>)  {   
    
@@ -227,6 +229,10 @@ while( my $line = <$info>)  {
 }
 print $out "</table><br><br>\n";
 close $info;
+
+### TODO ####### Member of Service Groups as well as monitors bound to servers #######
+
+######
 
 open $info, $file or die "Could not open $file: $!";
 
@@ -776,23 +782,25 @@ close $info;
 
 ######### Configuración VS VPN #############
 open $info, $file or die "Could not open $file: $!";
-print $out "<table border=1pt><tr><td>Virtual Server</td><td>Config Param</td><td>Value</td></tr>\n";
+print $out "<table border=1pt><tr><td>Count</td><td>Virtual Server</td><td>Config Param</td><td>Value</td></tr>\n";
+my $tot_vpn_lines = 0;
 while( my $line = <$info>)  {   
    
     if($line =~ /add vpn vserver/){
+    	my $vpn_lines = 0;
     	my @values = split(' ',$line);
     	my %my_vpn_vs = extract_params($line);
     	$ldapAction{ $values[3] } = %vpn_vserver; #store the hash that contains the values... 
-        print $out "<tr><td>".$values[3]."</td>";
+        print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>".$values[3]."</td>";
         print $out "<td>IP</td><td>".$values[5]."</td></tr>";
         if(exists $my_vpn_vs{"icaOnly"}){
-        	print $out "<tr><td>erase_me</td><td>Ica Only</td><td>".$my_vpn_vs{"icaOnly"}."</td></tr>";
+        	print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>Ica Only</td><td>".$my_vpn_vs{"icaOnly"}."</td></tr>";
         }else{
-        	print $out "<tr><td>erase_me</td><td>Ica Only</td><td>OFF</td></tr>";
+        	print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>Ica Only</td><td>OFF</td></tr>";
         }
-    	print $out "<tr><td>erase_me</td><td>Max failed Logins</td><td>".$my_vpn_vs{"maxLoginAttempts"}."</td></tr>";
-        print $out "<tr><td>erase_me</td><td>Max Concrr Users</td><td>".$my_vpn_vs{"maxAAAUsers"}."</td></tr>";
-        print $out "<tr><td>erase_me</td><td>cginfraHomePageRedirect</td><td>".$my_vpn_vs{"cginfraHomePageRedirect"}."</td><tr>\n";
+    	print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>Max failed Logins</td><td>".$my_vpn_vs{"maxLoginAttempts"}."</td></tr>";
+        print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>Max Concrr Users</td><td>".$my_vpn_vs{"maxAAAUsers"}."</td></tr>";
+        print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>cginfraHomePageRedirect</td><td>".$my_vpn_vs{"cginfraHomePageRedirect"}."</td><tr>\n";
        	#contiene un arreglo de las lineas de politicas (permite diferenciar RW de AUTH de SESS...)
 		my @vpn_vs_binds;
 		my @vpn_vs_pols;
@@ -811,7 +819,7 @@ while( my $line = <$info>)  {
 		#print "VS".$values[3]." - #STAS: ".(scalar @vpn_vs_binds)." - ".Dumper(@vpn_vs_binds)."\n\n";
 
         	for my $i (0 .. $#vpn_vs_binds){    # foreach my $sta (\@vpn_vs_binds){
-        		print $out "<tr><td>erase_me</td><td>STA Server</td><td>".$vpn_vs_binds[$1]."</td></tr>\n";
+        		print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>STA Server</td><td>".$vpn_vs_binds[$i]."</td></tr>\n";
         	}
 
          	for my $i (0 .. $#vpn_vs_pols){
@@ -820,7 +828,7 @@ while( my $line = <$info>)  {
          		print "POLITICA: ".$temp."\n";
          		my %curr_pol = %{$vpn_sesPolicies{$temp}};
          		#print "Otro error: ".Dumper(%curr_pol)."\n";
-        		print $out "<tr><td>erase_me</td><td>POL</td><td>".$curr_pol{"priority"}."".$curr_pol{"policy"}."</td></tr>\n";
+        		print $out "<tr><td>".$tot_vpn_lines++." - ".$vpn_lines++."</td><td>erase_me</td><td>POL</td><td>".$curr_pol{"priority"}."".$curr_pol{"policy"}."</td></tr>\n";
         	}
     }
 }
