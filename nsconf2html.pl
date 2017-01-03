@@ -4,7 +4,6 @@
 use strict;
 use warnings;
 use Data::Dumper;
-use Hash::Merge qw( merge );
 
 
 
@@ -77,7 +76,7 @@ open($out, ">" , $filename ) or die "Cloud not open output file\n";
 
 
 print $out "<html><head><h2>Currently only LB config is displayed in html table format<h2></head><body>";
-print $out "<h3>Pase in work using the \"Paste Specil...\" and then Unformated Text.<h3>";
+print $out "<h3>Pase in MS Word using the \"Paste Specil...\" and then Unformated Text.<h3>";
 #first pass to detect servers
 #print "IP list:\n";
 open $info, $file or die "Could not open $file: $!";
@@ -115,6 +114,7 @@ close $info;
 
 
 ############## add route #########################
+## TODO add PBR.... soon
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>Network</td><td>Mask</td><td>Gateway</td></tr>\n";
 while( my $line = <$info>)  {   
@@ -168,7 +168,7 @@ close $info;
 open $info, $file or die "Could not open $file: $!";
 #first pass to detect servers
 #print "Server list:\n";
-print $out "<table border=0pt><tr><td>Server Name</td><td>IP</td>";
+print $out "<table border=1pt><tr><td>Server Name</td><td>IP</td>";
 if($has_td==1){
 print $out "<td>TD</td>";
 }
@@ -711,7 +711,7 @@ for (keys %cs_bindings){
 }
 print $out "</table><br><br>\n";
 
-print $out "Configuración Access Gateway</p>";
+print $out "NetScaler Gateway Config</p>";
 
 ######### Configuración Perfiles de autenticación #############
 open $info, $file or die "Could not open $file: $!";
@@ -729,7 +729,7 @@ while( my $line = <$info>)  {
 print $out "</table><br><br>\n";
 close $info; 
 
-######### Configuración Acciones de autenticación #############
+######### Authentication LDAP Actions #############
 open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>LDAP Action</td><td>Config Param</td><td>Value</td></tr>\n";
 while( my $line = <$info>)  {   
