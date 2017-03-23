@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-
+#Using search and split with '-(?=(?:[^"]|"[^"]*")*$)' will ignore the searched character inside the double quotes.
 
 
 #input the config line, return a hash that the keys are the -someting in the config line
@@ -54,6 +54,7 @@ my %gslb_sites = ();
 my %gslb_services = ();
 my %gslb_vservers = ();
 my %gslb_vserver_bindings = ();
+my %app_fw_profiles = ();
 
 #Get host name of netscaler to change output filename.
 open my $info, $file or die "Could not open $file: $!";
@@ -561,7 +562,7 @@ open $info, $file or die "Could not open $file: $!";
 print $out "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td></tr>\n";
 while( my $line = <$info>)  {   
     if($line =~ /add cs policy/){
-    	my @values = split(' ',$line);
+    	my @values = split('\s(?=(?:[^"]|"[^"]*")*$)',$line);
     	$cs_pols{ $values[3] } = $line; #3 es IP, 4 es netmask y 5 en aldelante son parm
         #print "POLITICA: ".$values[3]."\n";
         print $out "<tr>";
@@ -859,7 +860,7 @@ print $out "<table border=1pt><tr><td>Policy</td><td>rule</td><td>Action</td></t
 while( my $line = <$info>)  {   
    
     if($line =~ /add vpn sessionPolicy/){
-    	my @values = split(' ',$line);
+    	my @values = split('\s(?=(?:[^"]|"[^"]*")*$)',$line);
     	$ldapPolicy{ $values[3] } = $line; #guarda la lindea
         print $out "<tr><td>".$values[3]."</td>";
         print $out "<td>".$line."</td>";
@@ -875,7 +876,7 @@ close $info;
 open $info, $file or die "Could not open $file: $!";
 while( my $line = <$info>)  {  
 	 if($line =~ /add vpn sessionAction/){
-	 	my @values = split(' ',$line);
+	 	my @values = split('\s(?=(?:[^"]|"[^"]*")*$)',$line);
     	my %my_vpn_act = extract_params($line);
 	 	$vpn_sesAction{$values[3]} = \%my_vpn_act;
 	 }
@@ -1098,3 +1099,41 @@ while( my $line = <$info>)  {
 }
 print $out "</table>\n";
 close $info; 
+
+print $out "Application Firewall Policies</p>"; #add appfw policy 
+print $out "<table border=1><tr><td>Policy</td><td><Rule></td><td>Profile</td></tr>";
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add appfw policy/){
+	 	my @values = split('\s(?=(?:[^"]|"[^"]*")*$)',$line);
+	 	print $out "<tr><td>".$values[3]."</td><td>".$values[4]."</td><td>".$values[5]."</td><td></tr>";
+	 	
+	 }
+}
+print $out "</table>\n";
+close $info; 
+
+print $out "AppFirewall Profiles</p>";
+#this line will find the set gslb vserver command and append all params to the already existing add gslb vserver hash
+print $out "<table border=1><tr><td>Profile</td><td><configs></td><td>Values</td></tr>";
+open $info, $file or die "Could not open $file: $!";
+while( my $line = <$info>)  {  
+	 if($line =~ /add appfw profile/){
+	 	my @values = split(' ',$line);
+	 	my @params = split('-(?=(?:[^"]|"[^"]*")*$)',$line);
+    	print $out "<tr><td>".$values[3]."</td><td></td><td></td></tr>";
+    	my $count = 0;
+    	foreach my $i (@params) {
+    		if($count>0){ 
+    			print $out "<tr><td></td><td>";
+    			my @temp = split(' ',$i,2);
+    			print $out " ".$temp[0]."</td><td>".$temp[1]."</td></tr>";
+    		}
+    		$count++;
+		} 
+    	print "Params: ".Dumper(@params)."\n\n";
+    	#my %my_app_fw_profiles = extract_params($line);
+	 	##print $line."\n\n";
+	 }
+}
+close $info;
