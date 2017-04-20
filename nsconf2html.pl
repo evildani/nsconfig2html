@@ -165,6 +165,21 @@ while ( my $line = <$info> ) {
 print $out "</table><br><br>\n";
 close $info;
 
+############# net Profiles ##########
+open $info, $file or die "Could not open $file: $!";
+print $out "<table border=1pt><tr><td>Net Profile Name</td><td>IP</td></tr>\n";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /add netProfile/ ) {
+        my @values = split( ' ', $line );
+        print $out "<tr><td>" . $values[2] . "</td>";
+        print $out "<td>" . $values[4] . "</td><tr>\n";
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+
 ##########################print "Traffic Domains:\n";
 open $info, $file or die "Could not open $file: $!";
 print $out
@@ -295,7 +310,7 @@ print $out
 while ( my $line = <$info> ) {
 
     if ( $line =~ /add lb monitor/ ) {
-        my @values = split( ' ', $line );
+        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
         print $out "<tr><td>" . $values[3] . "</td>";
         print $out "<td>" . $values[4] . "</td>";
         print $out "<td>" . $values[7] . "</td>";
