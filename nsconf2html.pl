@@ -32,6 +32,7 @@ my $hostname = "";
 my @features           = ();
 my %td                 = ();
 my $has_td             = 0;
+my $has_netprof 	   = 0;
 my %ips                = ();
 my %server             = ();
 my %service            = ();
@@ -174,6 +175,7 @@ while ( my $line = <$info> ) {
         my @values = split( ' ', $line );
         print $out "<tr><td>" . $values[2] . "</td>";
         print $out "<td>" . $values[4] . "</td><tr>\n";
+        $has_netprof = 1;
     }
 }
 print $out "</table><br><br>\n";
@@ -249,6 +251,9 @@ print $out
 if ( $has_td == 1 ) {
     print $out "<td>TD</td>";
 }
+if ( $has_netprof == 1 ) {
+    print $out "<td>Net Profile</td>";
+}
 print $out "</tr>";
 while ( my $line = <$info> ) {
 
@@ -267,6 +272,9 @@ while ( my $line = <$info> ) {
         print $out "<td>" . $values[5] . "</td><td>" . $values[4] . "</td>";
         if ( $has_td == 1 ) {
             print $out "<td>" . $svc_params{"td"} . "</td>";
+        }
+        if ( $has_netprof == 1 ) {
+            print $out "<td>" . $svc_params{"netProfile"} . "</td>";
         }
         print $out "</tr>\n";
     }
