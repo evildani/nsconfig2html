@@ -709,27 +709,27 @@ print $out "</table><br><br>\n";
 
 ######seccion para Content Switch policies ##############
 close $info;
-open $info, $file or die "Could not open $file: $!";
-print $out
-    "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td></tr>\n";
-while ( my $line = <$info> ) {
-    if ( $line =~ /add cs policy/ ) {
-        my @values = split( '\s(?=(?:[^"]|"[^"]*")*$)', $line );
-        $cs_pols{ $values[3] }
-            = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parm
-                        #print "POLITICA: ".$values[3]."\n";
-        print $out "<tr>";
-        print $out "<tr><td>" . $values[3] . "</td>";
-        print $out "<td>" . $values[4] . "</td>";
-        print $out "<td>" . $values[5] . "</td><tr>\n";
+if ( "CS" ~~ @features ) {
+    open $info, $file or die "Could not open $file: $!";
+    print $out
+        "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td></tr>\n";
+    while ( my $line = <$info> ) {
+        if ( $line =~ /add cs policy/ ) {
+            my @values = split( '\s(?=(?:[^"]|"[^"]*")*$)', $line );
+            $cs_pols{ $values[3] }
+                = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parm
+                            #print "POLITICA: ".$values[3]."\n";
+            print $out "<tr>";
+            print $out "<tr><td>" . $values[3] . "</td>";
+            print $out "<td>" . $values[4] . "</td>";
+            print $out "<td>" . $values[5] . "</td><tr>\n";
+        }
     }
-}
-close $info;
-print $out "</table><br><br>\n";
+    close $info;
+    print $out "</table><br><br>\n";
 
 ########seccion para Content Switch VSERVER ##############
-# add cs vserver NAME TYPE IP PORT -cltTimeout 180 -Listenpolicy None
-if ( "CS" ~~ @features ) {
+    # add cs vserver NAME TYPE IP PORT -cltTimeout 180 -Listenpolicy None
 
     open $info, $file or die "Could not open $file: $!";
     print $out "<h3>Content Switch Section</h3><br>";
@@ -907,7 +907,8 @@ if ( "CS" ~~ @features ) {
 }
 
 ###VPN Serction
-if ( "VPN" ~~ @features ) {
+print "VPN check is: ".("SSLVPN" ~~ @features)."\n";
+if ( "SSLVPN" ~~ @features ) {
 
     print $out "NetScaler Gateway Config</p>";
 
@@ -918,7 +919,7 @@ if ( "VPN" ~~ @features ) {
     while ( my $line = <$info> ) {
 
         if ( $line =~ /add authentication ldapPolicy/ ) {
-            my @values = split( ' ', $line );
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[4] . "</td>";
@@ -1502,7 +1503,6 @@ if ( "AppFw" ~~ @features ) {
 
     print $out "AppFirewall Profiles</p>";
 
-#this line will find the set gslb vserver command and append all params to the already existing add gslb vserver hash
     print $out
         "<table border=1><tr><td>Profile</td><td><configs></td><td>Values</td></tr>";
     open $info, $file or die "Could not open $file: $!";
@@ -1528,6 +1528,43 @@ if ( "AppFw" ~~ @features ) {
             }
         }
     }
+    print $out "</table>\n";
     close $info;
-}
+
+    print $out
+        "AppFirewall Profiles Details. This can very big and long, final formating to be defined.</p>";
+
+    #bind appfw profile
+    print $out "<table border=1><tr><td>Profile</td><td>Relaxation</td></tr>";
+    open $info, $file or die "Could not open $file: $!";
+    while ( my $line = <$info> ) {
+        if ( $line =~ /bind appfw profile/ ) {
+            my @values = split( '\s', $line );
+            my $print = 1;
+            if ( "-denyURL" ~~ @values )
+            {    #line is a denyURL, usually comes by deafult.
+                $print = 0;
+            }
+            if ( $values[4] eq "-comment" )
+            { #line is like bind appfw profile AF_PROF_DESA_DISPLAY_PDF -comment "For all images" -excludeResContentType "image/.*"
+                $print = 0;
+            }
+            if ( $print == 1 ) {
+                print $out "<tr><td>" . $values[3] . "</td><td>";
+                my $count = 0;
+                foreach my $i (@values) {
+                    if ( $count > 3 ) {
+                        print $out " " . $i . " ";
+                    }
+                    $count++;
+                }
+                print $out "</td></tr>";
+            }
+            $print = 1;
+        }
+    }
+    print $out "</table>\n";
+    close $info;
+
+}    #closing bracket for appfw
 
