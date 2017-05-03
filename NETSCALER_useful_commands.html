@@ -1,0 +1,12 @@
+<html>
+</body?
+One action per line. No policies provided.
+</p></p>
+add rewrite action change_protocol_reference replace_all "http.RES.BODY(1000000).SET_TEXT_MODE(ignorecase)" "\"https://\"" -pattern "re~http://~" -comment "Replace links in pages to match actual protocol" </p>
+add rewrite action change_redirect_to_https replace "http.res.HEADER(\"Location\").SET_TEXT_MODE(ignorecase).BEFORE_REGEX(re~://~)" "\"https\"" -comment "Change location header to work with https" </p>
+add rewrite action NG-IE11 insert_after_all "HTTP.RES.BODY(6000)" q/"\r\n"+"<META http-equiv=\"X-UA-Compatible\" content=\"IE=EmulateIE9\">"/ -search "text(\"</TITLE>\")" </p>
+add rewrite policy change_protocol_reference_pol True change_protocol_reference -comment "Replace links in pages served by password  reset tool to match actual protocol" </p>
+add rewrite policy change_location_header_to_https "http.RES.HEADER(\"Location\").SET_TEXT_MODE(ignorecase).CONTAINS(\"http://\")" change_redirect_to_https -comment "Change location header to work with https" </p>
+add rewrite policy NG-IE11_rwpol "HTTP.REQ.URL.PATH.ENDSWITH(\"/vpn/index.html\")" NG-IE11 </p>
+</body>
+</html>
