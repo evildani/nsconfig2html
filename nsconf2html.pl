@@ -734,7 +734,7 @@ while ( my $line = <$info> ) {
 print $out "</table><br><br>\n";
 
 
-###### REWRITE ################
+###### REWRITE actions################
 
 open $info, $file or die "Could not open $file: $!";
 
@@ -766,7 +766,27 @@ while ( my $line = <$info> ) {
 print $out "</table><br><br>\n";
 close $info;
 
+## rewrite policy ###
 
+open $info, $file or die "Could not open $file: $!";
+
+#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
+
+print $out
+    "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /add rewrite policy/ ) {
+        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
+        print $out "<tr>";
+        print $out "<td>" . $values[3] . "</td>";
+        print $out "<td>" . $values[4] . "</td>";
+        print $out "<td>" . $values[5] . "</td>";
+        print $out "</tr>\n";
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
 
 
 
