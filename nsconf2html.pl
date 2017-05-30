@@ -27,16 +27,16 @@ sub extract_params {
     return %params;
 }
 
-my $file     = $ARGV[0];
+my $file = $ARGV[0];
 ### get path from arg to know target path of resulting $info file.
-my $dir = dirname($ARGV[0]);
+my $dir = dirname( $ARGV[0] );
 
 my $hostname = "";
 
 my @features           = ();
 my %td                 = ();
 my $has_td             = 0;
-my $has_netprof 	   = 0;
+my $has_netprof        = 0;
 my %ips                = ();
 my %server             = ();
 my %service            = ();
@@ -76,7 +76,8 @@ close $info;
 
 my $filename = $hostname . ".html";
 my $out;
-open( $out, ">", $dir."/".$filename ) or die "Cloud not open output file\n";
+open( $out, ">", $dir . "/" . $filename )
+    or die "Cloud not open output file\n";
 
 print $out
     "<html><head><h2>Currently only LB config is displayed in html table format<h2></head><body>";
@@ -172,7 +173,8 @@ close $info;
 
 ############# net Profiles ##########
 open $info, $file or die "Could not open $file: $!";
-print $out "<table border=1pt><tr><td>Net Profile Name</td><td>IP</td></tr>\n";
+print $out
+    "<table border=1pt><tr><td>Net Profile Name</td><td>IP</td></tr>\n";
 while ( my $line = <$info> ) {
 
     if ( $line =~ /add netProfile/ ) {
@@ -184,7 +186,6 @@ while ( my $line = <$info> ) {
 }
 print $out "</table><br><br>\n";
 close $info;
-
 
 ##########################print "Traffic Domains:\n";
 open $info, $file or die "Could not open $file: $!";
@@ -322,7 +323,7 @@ print $out
 while ( my $line = <$info> ) {
 
     if ( $line =~ /add lb monitor/ ) {
-        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
+        my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
         print $out "<tr><td>" . $values[3] . "</td>";
         print $out "<td>" . $values[4] . "</td>";
         print $out "<td>" . $values[7] . "</td>";
@@ -733,65 +734,115 @@ while ( my $line = <$info> ) {
 }
 print $out "</table><br><br>\n";
 
-
 ###### REWRITE actions################
-
-open $info, $file or die "Could not open $file: $!";
+if ( "REWRITE" ~~ @features ) {
+    open $info, $file or die "Could not open $file: $!";
 
 #  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
 
-print $out
-    "<table border=1pt><tr><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
-while ( my $line = <$info> ) {
+    print $out
+        "<h3>Rewrite</h3><table border=1pt><tr><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
+    while ( my $line = <$info> ) {
 
-    if ( $line =~ /add rewrite action/ ) {
-        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
-        print $out "<tr>";
-        foreach my $n (0 .. $#values){
-        	if($n == 0 || $n == 1 || $n == 2){ ## 
-        	}
-        	if($n == 3 || $n == 4 || $n == 5){
-        		print $out "<td>" . $values[$n] . "</td>";
-        	}if($n == 5)
-        	{
-        		print $out " <td> ";
-        	}
-        	if($n > 5 ){
-        		print $out " " . $values[$n] . " ";
-        	}
+        if ( $line =~ /add rewrite action/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr>";
+            foreach my $n ( 0 .. $#values ) {
+                if ( $n == 0 || $n == 1 || $n == 2 ) {    ##
+                }
+                if ( $n == 3 || $n == 4 || $n == 5 ) {
+                    print $out "<td>" . $values[$n] . "</td>";
+                }
+                if ( $n == 5 ) {
+                    print $out " <td> ";
+                }
+                if ( $n > 5 ) {
+                    print $out " " . $values[$n] . " ";
+                }
+            }
+            print $out "</td></tr>\n";
         }
-        print $out "</td></tr>\n";
     }
-}
-print $out "</table><br><br>\n";
-close $info;
+    print $out "</table><br><br>\n";
+    close $info;
 
 ## rewrite policy ###
 
-open $info, $file or die "Could not open $file: $!";
+    open $info, $file or die "Could not open $file: $!";
 
 #  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
 
-print $out
-    "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
-while ( my $line = <$info> ) {
+    print $out
+        "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+    while ( my $line = <$info> ) {
 
-    if ( $line =~ /add rewrite policy/ ) {
-        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
-        print $out "<tr>";
-        print $out "<td>" . $values[3] . "</td>";
-        print $out "<td>" . $values[4] . "</td>";
-        print $out "<td>" . $values[5] . "</td>";
-        print $out "</tr>\n";
+        if ( $line =~ /add rewrite policy/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr>";
+            print $out "<td>" . $values[3] . "</td>";
+            print $out "<td>" . $values[4] . "</td>";
+            print $out "<td>" . $values[5] . "</td>";
+            print $out "</tr>\n";
+        }
     }
+    print $out "</table><br><br>\n";
+    close $info;
 }
-print $out "</table><br><br>\n";
-close $info;
 
+###### Responder actions################
+if ( "RESPONDER" ~~ @features ) {
+    open $info, $file or die "Could not open $file: $!";
 
+#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
 
+    print $out
+        "<h3>Responder</h3><table border=1pt><tr><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
+    while ( my $line = <$info> ) {
 
+        if ( $line =~ /add responder action/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr>";
+            foreach my $n ( 0 .. $#values ) {
+                if ( $n == 0 || $n == 1 || $n == 2 ) {    ##
+                }
+                if ( $n == 3 || $n == 4 || $n == 5 ) {
+                    print $out "<td>" . $values[$n] . "</td>";
+                }
+                if ( $n == 5 ) {
+                    print $out " <td> ";
+                }
+                if ( $n > 5 ) {
+                    print $out " " . $values[$n] . " ";
+                }
+            }
+            print $out "</td></tr>\n";
+        }
+    }
+    print $out "</table><br><br>\n";
+    close $info;
 
+## rewrite policy ###
+
+    open $info, $file or die "Could not open $file: $!";
+
+#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
+
+    print $out
+        "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+    while ( my $line = <$info> ) {
+
+        if ( $line =~ /add responder policy/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr>";
+            print $out "<td>" . $values[3] . "</td>";
+            print $out "<td>" . $values[4] . "</td>";
+            print $out "<td>" . $values[5] . "</td>";
+            print $out "</tr>\n";
+        }
+    }
+    print $out "</table><br><br>\n";
+    close $info;
+}
 
 ############################################################## C O N T E N T    S W I T C H ###########
 
@@ -995,7 +1046,7 @@ if ( "CS" ~~ @features ) {
 }
 
 ###VPN Serction
-print "VPN check is: ".("SSLVPN" ~~ @features)."\n";
+print "VPN check is: " . ( "SSLVPN" ~~ @features ) . "\n";
 if ( "SSLVPN" ~~ @features ) {
 
     print $out "NetScaler Gateway Config</p>";
