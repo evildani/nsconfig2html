@@ -3,6 +3,7 @@
 
 use strict;
 use warnings;
+use File::Basename;
 use Data::Dumper;
 
 #Using search and split with '-(?=(?:[^"]|"[^"]*")*$)' will ignore the searched character inside the double quotes.
@@ -27,6 +28,9 @@ sub extract_params {
 }
 
 my $file     = $ARGV[0];
+### get path from arg to know target path of resulting $info file.
+my $dir = dirname($ARGV[0]);
+
 my $hostname = "";
 
 my @features           = ();
@@ -72,7 +76,7 @@ close $info;
 
 my $filename = $hostname . ".html";
 my $out;
-open( $out, ">", $filename ) or die "Cloud not open output file\n";
+open( $out, ">", $dir."/".$filename ) or die "Cloud not open output file\n";
 
 print $out
     "<html><head><h2>Currently only LB config is displayed in html table format<h2></head><body>";
@@ -728,6 +732,47 @@ while ( my $line = <$info> ) {
     }
 }
 print $out "</table><br><br>\n";
+
+
+###### REWRITE ################
+
+open $info, $file or die "Could not open $file: $!";
+
+#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
+
+print $out
+    "<table border=1pt><tr><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /add rewrite action/ ) {
+        my @values = split(' (?=(?:[^"]|"[^"]*")*$)', $line );
+        print $out "<tr>";
+        foreach my $n (0 .. $#values){
+        	if($n == 0 || $n == 1 || $n == 2){ ## 
+        	}
+        	if($n == 3 || $n == 4 || $n == 5){
+        		print $out "<td>" . $values[$n] . "</td>";
+        	}if($n == 5)
+        	{
+        		print $out " <td> ";
+        	}
+        	if($n > 5 ){
+        		print $out " " . $values[$n] . " ";
+        	}
+        }
+        print $out "</td></tr>\n";
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+
+
+
+
+
+
+
 ############################################################## C O N T E N T    S W I T C H ###########
 
 ######seccion para Content Switch policies ##############
