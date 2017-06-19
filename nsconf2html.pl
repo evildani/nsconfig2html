@@ -1565,26 +1565,29 @@ if ( "AAA" ~~ @features ) {
 
 #bind authentication policylabel
 #bind authentication policylabel AUTH_PL_LDAP_SECOND -policyName DEV_AUTH_POL_LDAP_SECOND -priority 100 -gotoPriorityExpression END
-#contains bindings %auth_pl_bindings open $info, $file
+#contains bindings %auth_pl_bindings
       open $info, $file  or die "Could not open $file: $!";
     while ( my $line = <$info> ) {
         if ( $line =~ /bind authentication policylabel/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            my @policy = ();
+            $policy[0] = $values[5]; #policy name
+            $policy[1] = $values[7]; #priority
             my $auth_pl_policy = "Policy: ".$values[5] . " Priority: " . $values[7] . " ";
             if ( $values[8] eq "-gotoPriorityExpression" ) {
-                $auth_pl_policy = $auth_pl_policy . " GotTo: " . $values[9];
+            	$policy[2] = $values[9]; #goto value
             }
             if ( $values[10] eq "-nextFactor" ) {
-                $auth_pl_policy = $auth_pl_policy . " Next: " . $values[11];
+            	$policy[3] = $values[11]; #next factor
             }
             if ( exists $auth_pl_bindings{ $values[3] } ) {
                 my @auth_pl_binds = @{ $auth_pl_bindings{ $values[3] } };
-                push @auth_pl_binds, $auth_pl_policy;
+                push @auth_pl_binds, \@policy;
                 $auth_pl_bindings{ $values[3] } = \@auth_pl_binds;
             }
             else {
                 my @auth_pl_binds;
-                push @auth_pl_binds, $auth_pl_policy;
+                push @auth_pl_binds, \@policy;
                 $auth_pl_bindings{ $values[3] } = \@auth_pl_binds;
             }
         }
@@ -1596,22 +1599,21 @@ if ( "AAA" ~~ @features ) {
 #add authentication policylabel
     open $info, $file or die "Could not open $file: $!";
     print $out
-        "</p><table border=1pt><tr><td>Policy Label</td><td>Login Schema</td><td>Policies</td></tr>\n";
+        "</p><table border=1pt><tr><td>Policy Label</td><td>Schema/Policy</td><td>Priority</td><td>Goto</td><td>Next Factor</td></tr>\n";
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication policylabel / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $login_schema_policy{ $values[3] } = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parms
-                            #print $values[3]."\n";
+            $login_schema_policy{ $values[3] } = $line;  
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
-            print $out "<td></td></tr>\n";
+            print $out "<td></td><td></td><td></td></tr>\n";
             #print bound policy(s) to the policylabel, this the important part of the label
             my @pl_binds;
 			if(exists $auth_pl_bindings{$values[3]}){
-				@pl_binds = @{ $auth_pl_bindings{$values[3]} };
+				@pl_binds = @{ $auth_pl_bindings{$values[3]} }; #contains an array predefined during the binds
 				my $index = 0;
 				for $index (0 .. $#pl_binds){
-					print $out "<tr><td>erase_me</td><td>erase_me</td><td>". $pl_binds[$index] ."</td></tr>";
+					print $out "<tr><td>erase_me</td><td>". $pl_binds[$index][0] ."</td><td>". $pl_binds[$index][1] ."</td><td>". $pl_binds[$index][2] ."</td><td>". $pl_binds[$index][3] ."</td></tr>";
 				}
 
 			}
