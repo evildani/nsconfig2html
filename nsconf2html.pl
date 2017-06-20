@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use File::Basename;
 use Data::Dumper;
+use Scalar::Util;
 
 #Using search and split with '-(?=(?:[^"]|"[^"]*")*$)' will ignore the searched character inside the double quotes.
 
@@ -48,12 +49,15 @@ my %cs_bindings        = ();
 my %cs_bindings_target = ();
 my %cs_bindings_all    = ();
 
-my %aaa_vs              = ();  #based on a vserver, what policies are bound. vserver - array(policies bound)
-my %aaa_policies        = ();  #all bound policies in all vservers, for reference.
+my %aaa_vs = ()
+    ; #based on a vserver, what policies are bound. vserver - array(policies bound)
+my %aaa_policies = ();    #all bound policies in all vservers, for reference.
 my %login_schema_policy = ();
 my %login_schema        = ();
 my %auth_policy_label   = ();
-my %auth_pl_bindings    = ();  #based on a policy label, what policies are bound. policlabel - array(policies bound)
+### my %auth_pl_bindings  = # 0 policy name # 1 priority # 2 goto value # 3 next factor
+my %auth_pl_bindings = ()
+    ; #based on a policy label, what policies are bound. policlabel - array(policies bound)
 
 my %ldapPolicy       = ();
 my %ldapAction       = ();
@@ -1325,6 +1329,7 @@ if ( "SSLVPN" ~~ @features ) {
         "<table border=1><tr><<td>#</td><td>Session Profile</td><td>Param</td><td>value</td><td>Explanation/Justiofication</td></tr>\n";
     my $sess_prof;
     foreach $sess_prof ( keys %vpn_sesAction ) {
+
         #print "ERROR: " . Dumper($sess_prof) . "\n";
         print $out "<tr><td>"
             . $counter++
@@ -1452,7 +1457,7 @@ if ( "AAA" ~~ @features ) {
 #to the VS it binds the policies and the Login schema policy.
 #bind authentication vserver
 
-   open $info, $file or die "Could not open $file: $!";
+    open $info, $file or die "Could not open $file: $!";
     print $out
         "</h3>Authentication</h3></p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
     while ( my $line = <$info> ) {
@@ -1465,30 +1470,29 @@ if ( "AAA" ~~ @features ) {
             #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
             print $out "<tr><td>" . $values[3] . "</td>";
-            
-            print $out "<td>" . $values[5] . "</td><tr>\n";
-                if ( exists $aaa_vs{ $values[3] } ) {
-                    my @aaa_vs_pols = @{ $aaa_vs{ $values[3] } };
-                    my %this_policy = extract_params($line);
-                    $aaa_policies{ $this_policy{"policy"} } = \%this_policy;    #llena el hash
-                    push @aaa_vs_pols, $this_policy{"policy"};
-                    $aaa_vs{ $values[3] } = \@aaa_vs_pols;
 
-                }
-                else {    #si es una polictica guardo la linea
-                    my @aaa_vs_pols = ();
-                    my %this_policy = extract_params($line);
-                    $aaa_policies{ $this_policy{"policy"} }  = \%this_policy;    #llena el hash
-                    push @aaa_vs_pols, $this_policy{"policy"};
-                    $aaa_vs{ $values[3] } = \@aaa_vs_pols;
-                }
+            print $out "<td>" . $values[5] . "</td><tr>\n";
+            if ( exists $aaa_vs{ $values[3] } ) {
+                my @aaa_vs_pols = @{ $aaa_vs{ $values[3] } };
+                my %this_policy = extract_params($line);
+                $aaa_policies{ $this_policy{"policy"} }
+                    = \%this_policy;              #llena el hash
+                push @aaa_vs_pols, $this_policy{"policy"};
+                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
+
+            }
+            else {    #si es una polictica guardo la linea
+                my @aaa_vs_pols = ();
+                my %this_policy = extract_params($line);
+                $aaa_policies{ $this_policy{"policy"} }
+                    = \%this_policy;    #llena el hash
+                push @aaa_vs_pols, $this_policy{"policy"};
+                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
+            }
         }
     }
     print $out "</table><br><br>\n";
     close $info;
-
-
-
 
     open $info, $file or die "Could not open $file: $!";
     print $out
@@ -1506,16 +1510,17 @@ if ( "AAA" ~~ @features ) {
             print $out "<td>" . $values[4] . "</td>";
             print $out "<td>" . $values[5] . "</td><tr>\n";
             my @vs_pols = @{ $aaa_vs{ $values[3] } };
-            for my $pol (0 .. $#vs_pols){
-            	print $out "<tr><td>erase_me</td><td>policy</td>";
-            	print $out "<td>".$vs_pols[$pol];
-            	######
-            	if( exists $aaa_policies{ $vs_pols[$pol] }{"nextFactor"}){
-            		print $out " next ".$aaa_policies{ $vs_pols[$pol] }{"nextFactor"};
-            	}
-            	######
-            	print $out "</td></tr>";
-       
+            for my $pol ( 0 .. $#vs_pols ) {
+                print $out "<tr><td>erase_me</td><td>policy</td>";
+                print $out "<td>" . $vs_pols[$pol];
+                ######
+                if ( exists $aaa_policies{ $vs_pols[$pol] }{"nextFactor"} ) {
+                    print $out " next "
+                        . $aaa_policies{ $vs_pols[$pol] }{"nextFactor"};
+                }
+                ######
+                print $out "</td></tr>";
+
             }
         }
     }
@@ -1566,27 +1571,31 @@ if ( "AAA" ~~ @features ) {
 #bind authentication policylabel
 #bind authentication policylabel AUTH_PL_LDAP_SECOND -policyName DEV_AUTH_POL_LDAP_SECOND -priority 100 -gotoPriorityExpression END
 #contains bindings %auth_pl_bindings
-      open $info, $file  or die "Could not open $file: $!";
+    open $info, $file or die "Could not open $file: $!";
     while ( my $line = <$info> ) {
         if ( $line =~ /bind authentication policylabel/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             my @policy = ();
-            $policy[0] = $values[5]; #policy name
-            $policy[1] = $values[7]; #priority
-            my $auth_pl_policy = "Policy: ".$values[5] . " Priority: " . $values[7] . " ";
+            $policy[0] = $values[5];    #policy name
+            $policy[1] = $values[7];    #priority
+            $policy[2] = "";			#goto value
+            $policy[3] = "";			#next factor
+            my $auth_pl_policy
+                = "Policy: " . $values[5] . " Priority: " . $values[7] . " ";
             if ( $values[8] eq "-gotoPriorityExpression" ) {
-            	$policy[2] = $values[9]; #goto value
+                $policy[2] = $values[9];    #goto value
             }
             if ( $values[10] eq "-nextFactor" ) {
-            	$policy[3] = $values[11]; #next factor
+                $policy[3] = $values[11];    #next factor
             }
             if ( exists $auth_pl_bindings{ $values[3] } ) {
                 my @auth_pl_binds = @{ $auth_pl_bindings{ $values[3] } };
                 push @auth_pl_binds, \@policy;
                 $auth_pl_bindings{ $values[3] } = \@auth_pl_binds;
+
             }
             else {
-                my @auth_pl_binds;
+                my @auth_pl_binds = ();
                 push @auth_pl_binds, \@policy;
                 $auth_pl_bindings{ $values[3] } = \@auth_pl_binds;
             }
@@ -1595,6 +1604,7 @@ if ( "AAA" ~~ @features ) {
 
     print $out "</table><br><br>\n";
     close $info;
+
 #add authentication policylabel AUTH_PROD_PL_LDAP_SECOND -loginSchema PROD_LOGIN_TWO
 #add authentication policylabel
     open $info, $file or die "Could not open $file: $!";
@@ -1603,23 +1613,45 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication policylabel / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $login_schema_policy{ $values[3] } = $line;  
+            $login_schema_policy{ $values[3] } = $line;
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "<td></td><td></td><td></td></tr>\n";
-            #print bound policy(s) to the policylabel, this the important part of the label
-            my @pl_binds;
-			if(exists $auth_pl_bindings{$values[3]}){
-				@pl_binds = @{ $auth_pl_bindings{$values[3]} }; #contains an array predefined during the binds
-				my $index = 0;
-				for $index (0 .. $#pl_binds){
-					print $out "<tr><td>erase_me</td><td>". $pl_binds[$index][0] ."</td><td>". $pl_binds[$index][1] ."</td><td>". $pl_binds[$index][2] ."</td><td>". $pl_binds[$index][3] ."</td></tr>";
-				}
 
-			}
+#print bound policy(s) to the policylabel, this the important part of the label
+            my @pl_binds;
+            if ( exists $auth_pl_bindings{ $values[3] } ) {
+                @pl_binds = @{ $auth_pl_bindings{ $values[3] } }
+                    ;    #contains an array predefined during the binds
+                my $index = 0;
+                for $index ( 0 .. $#pl_binds ) {
+                    print $out "<tr><td>erase_me</td><td>"
+                        . $pl_binds[$index][0]
+                        . "</td><td>"
+                        . $pl_binds[$index][1]
+                        . "</td><td>"
+                        . $pl_binds[$index][2]
+                        . "</td><td>"
+                        . $pl_binds[$index][3]. "</td></tr>";
+                }
+
+            }
         }
     }
     print $out "</table><br><br>\n";
+    close $info;
+
+    open $info, $file or die "Could not open $file: $!";
+    #print $out
+     #   "<h4>Recursive Call of PolicyLabels</h4></p><table border=1pt><tr><td>Policy Label</td><td>Schema/Policy</td><td>Priority</td><td>Goto</td><td>Next Factor</td></tr>\n";
+    while ( my $line = <$info> ) {
+        if ( $line =~ /add authentication policylabel / ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            $login_schema_policy{ $values[3] } = $line;
+            policy_label_table( $values[3] );
+            }
+        }
+           
     close $info;
 
 }    #close the AAA
@@ -1714,6 +1746,7 @@ if ( "GSLB" ~~ @features ) {
         if ( $line =~ /add gslb vserver/ ) {
             my @values = split( ' ', $line );
             my %my_gslb_vservers = extract_params($line);
+
             #print "Dumper add GSLB: " . Dumper(%my_gslb_vservers);
             print $line. "\n\n";
 
@@ -1910,4 +1943,38 @@ if ( "AppFw" ~~ @features ) {
     close $info;
 
 }    #closing bracket for appfw
+
+#function that given a policylabel will print in table format the policy label and nest the next policy label called by the policy.
+sub policy_label_table {
+    print $out "\n<p/>PolicyLabel " . $_[0] . " <p/>";
+    print $out "<table border=1><tr><td>PolicyLabel</td><td>"
+        . $_[0]
+        . "</td></tr>";
+    if ( exists $auth_pl_bindings{ $_[0] } ) {
+        my @pl_binds2;
+        @pl_binds2 = @{ $auth_pl_bindings{ $_[0] } };
+
+        #contains an array predefined during the binds
+        my $index = 0;
+        for $index ( 0 .. $#pl_binds2 ) {
+            print $out "<tr><td> Policy </td><td>"
+                . $pl_binds2[$index][0]."</td></tr>";
+            print $out "<tr><td>Priority</td><td>"
+                . $pl_binds2[$index][1]
+                . "</td></tr>";
+            if ( $pl_binds2[$index][2] eq "NEXT" ) {
+                print $out "<tr><td> Goto </td><td>".$pl_binds2[$index][2] . "</td></tr>";
+                print $out "<tr><td> Next </td><td>".$pl_binds2[$index][3]."</td></tr></table>";
+                policy_label_table( $pl_binds2[$index][3] );
+
+            }
+        }
+
+        #return $output;
+    }
+    else {
+        print $out "<tr><td colspan=2>No Bindings</td></tr></table>";
+    }
+}
+
 
