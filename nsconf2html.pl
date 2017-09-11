@@ -16,13 +16,23 @@ sub extract_params {
     my @params_temp = split( '-', $line );
     my @arr;
 
-#print "+++++++++ Dump split en - arreglo:\n".Dumper(@params_temp)."\n+++++++++++++arreglo fin -------- \n";
     for my $elem (@params_temp) {
         @arr = split( / /, $elem );
         $params{ $arr[0] } = $arr[1];
+    }
 
-#print "\n Key ".$arr[0]." Value ".$arr[1]."\n";
-#print "==========Dump sub split en ' ':\n".Dumper(@arr)."\n ========= arreglo fin --------------- \n";
+    return %params;
+}
+
+sub extract_params_complex {
+    my $line = $_[0];
+    my %params;
+    my @params_temp = split('-', $line );
+    my @arr;
+
+    for my $elem (@params_temp) {
+        @arr = split( / /, $elem,2 );
+        $params{ $arr[0] } = $arr[1];
     }
 
     return %params;
@@ -1087,7 +1097,7 @@ while ( my $line = <$info> ) {
 
     if ( $line =~ /add authentication webAuthAction/ ) {
         my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-        my %my_webauth_action = extract_params($line);
+        my %my_webauth_action = extract_params_complex($line);
         $webAuthAction{ $values[3] } = %my_webauth_action;
          print $out "<tr><td>" . $values[3] . "</td>";
         print $out "<td>Server IP</td><td>"
