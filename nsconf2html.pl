@@ -27,11 +27,11 @@ sub extract_params {
 sub extract_params_complex {
     my $line = $_[0];
     my %params;
-    my @params_temp = split('-', $line );
+    my @params_temp = split( '-', $line );
     my @arr;
 
     for my $elem (@params_temp) {
-        @arr = split( / /, $elem,2 );
+        @arr = split( / /, $elem, 2 );
         $params{ $arr[0] } = $arr[1];
     }
 
@@ -62,9 +62,10 @@ my %cs_bindings_all    = ();
 my %aaa_vs = ()
     ; #based on a vserver, what policies are bound. vserver - array(policies bound)
 my %aaa_policies = ();    #all bound policies in all vservers, for reference.
-my %login_schema_policy = ();
-my %login_schema        = ();
-my %auth_policy_label   = ();
+my %aaa_policies_content = ();
+my %login_schema_policy  = ();
+my %login_schema         = ();
+my %auth_policy_label    = ();
 ### my %auth_pl_bindings  = # 0 policy name # 1 priority # 2 goto value # 3 next factor
 my %auth_pl_bindings = ()
     ; #based on a policy label, what policies are bound. policlabel - array(policies bound)
@@ -84,6 +85,8 @@ my %gslb_services         = ();
 my %gslb_vservers         = ();
 my %gslb_vserver_bindings = ();
 my %app_fw_profiles       = ();
+
+my %audit_msgs		      = ();
 
 #Get host name of netscaler to change output filename.
 open my $info, $file or die "Could not open $file: $!";
@@ -266,6 +269,34 @@ while ( my $line = <$info> ) {
         if ( $has_td == 1 ) {
             print $out "<td>" . $values[5] . "</td>";
         }
+        print $out "<tr>";
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
+open $info, $file or die "Could not open $file: $!";
+
+############### Audit messages ####################
+#add audit messageaction AUTH_AUDIT_MSG_988 INFORMATIONAL "sys.TIME+\" Authentication error detected code: 988 by \"+client.IP.SRC+\" Response body: \"+HTTP.RES.BODY(1024)"
+open $info, $file or die "Could not open $file: $!";
+
+#first pass to detect servers
+#print "Server list:\n";
+print $out "<table border=1pt><tr><td>Audit Msg</td><td>Type</td><td>Msg</td>";
+if ( $has_td == 1 ) {
+    print $out "<td>TD</td>";
+}
+print $out "</tr>";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /add audit messageaction/ ) {
+        my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+        $audit_msgs{ $values[3] } = $line;
+
+        #print $values[2]."\n";
+        print $out "<tr><td>" . $values[3] . "</td>";
+        print $out "<td>" . $values[4] . "</td>";
+        print $out "<td>" . substr($line, 24) . "</td>";
         print $out "<tr>";
     }
 }
@@ -1099,7 +1130,7 @@ while ( my $line = <$info> ) {
         my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
         my %my_webauth_action = extract_params_complex($line);
         $webAuthAction{ $values[3] } = %my_webauth_action;
-         print $out "<tr><td>" . $values[3] . "</td>";
+        print $out "<tr><td>" . $values[3] . "</td>";
         print $out "<td>Server IP</td><td>"
             . $my_webauth_action{"serverIP"}
             . "</td></tr>";
@@ -1514,85 +1545,36 @@ if ( "SSLVPN" ~~ @features ) {
     print $out "</table>\n";
 
 }
+
+######### AAA-TM Authentication ##############
 ######### AAA-TM Authentication ##############
 if ( "AAA" ~~ @features ) {
 
-#bind authentication vserver AUTH_VS -policy AUTH_LSP_VS_DEV_LOGIN_ONE -priority 100 -gotoPriorityExpression END
-#bind authentication vserver AUTH_VS -policy DEV_AUTH_POL_RADIUS_FIRST -priority 100 -nextFactor AUTH_PL_LDAP_SECOND -gotoPriorityExpression NEXT
-#to the VS it binds the policies and the Login schema policy.
-#bind authentication vserver
-
+#add authentication Policy COOKIE_LDAP_AUTH_POL -rule "http.REQ.header(\"Cookie\").CONTAINS(\"PATH\")" -action AUTH_LDAP
     open $info, $file or die "Could not open $file: $!";
     print $out
-        "</h3>Authentication</h3></p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
+        "</p><h3>Authentication Policies</h3></p><table border=1pt><tr><td>AAA Policies</td><td>Parameter</td><td>Value</td></tr>\n";
     while ( my $line = <$info> ) {
-
-        if ( $line =~ /bind authentication vserver/ ) {
-            my $aaa_lines = 0;
-            my @values    = split( ' ', $line );
-            my %my_aaa_vs = extract_params($line);
-
-            #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
-            print $out "<tr><td>" . $values[3] . "</td>";
-
-            print $out "<td>Policy</td><td>" . $values[5] . "</td><tr>\n";
-            if ( exists $aaa_vs{ $values[3] } ) {
-                my @aaa_vs_pols = @{ $aaa_vs{ $values[3] } };
-                my %this_policy = extract_params($line);
-                $aaa_policies{ $this_policy{"policy"} }
-                    = \%this_policy;              #llena el hash
-                push @aaa_vs_pols, $this_policy{"policy"};
-                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
-
-            }
-            else {    #si es una polictica guardo la linea
-                my @aaa_vs_pols = ();
-                my %this_policy = extract_params($line);
-                $aaa_policies{ $this_policy{"policy"} }
-                    = \%this_policy;    #llena el hash
-                push @aaa_vs_pols, $this_policy{"policy"};
-                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
-            }
+        if ( $line =~ /add authentication Policy / ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            my %my_auth_policies = extract_params_complex($line);
+            $values[3] =~ s/^\s+|\s$+//g;
+            $aaa_policies_content{ $values[3] } = \%my_auth_policies;
+            print $out "<tr><td>"
+                . $values[3]
+                . "</td><td>erase_me</td><td>erase_me</td></tr>";
+            print $out "<tr><td>erase_me</td><td>Rule</td><td>"
+                . $values[5]
+                . "</td></tr>";
+            print $out "<tr><td>erase_me</td><td>Action</td><td>"
+                . $values[7]
+                . "</td></tr>";
         }
+
     }
     print $out "</table><br><br>\n";
     close $info;
 
-    open $info, $file or die "Could not open $file: $!";
-    print $out
-        "</p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
-    while ( my $line = <$info> ) {
-
-        if ( $line =~ /add authentication vserver/ ) {
-            my $aaa_lines = 0;
-            my @values    = split( ' ', $line );
-            my %my_aaa_vs = extract_params($line);
-
-            #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
-            print $out "<tr><td>" . $values[3] . "</td>";
-            print $out "<td>" . $values[4] . "</td>";
-            print $out "<td>" . $values[5] . "</td><tr>\n";
-            my @vs_pols = @{ $aaa_vs{ $values[3] } };
-            for my $pol ( 0 .. $#vs_pols ) {
-                print $out "<tr><td>erase_me</td><td>policy</td>";
-                print $out "<td>" . $vs_pols[$pol];
-                ######
-                if ( exists $aaa_policies{ $vs_pols[$pol] }{"nextFactor"} ) {
-                    print $out " next "
-                        . $aaa_policies{ $vs_pols[$pol] }{"nextFactor"};
-                }
-                ######
-                print $out "</td></tr>";
-
-            }
-        }
-    }
-    print $out "</table><br><br>\n";
-    close $info;
-
-######### AAA-TM Authentication ##############
 #add authentication loginSchema
 #add authentication loginSchema PROD_LOGIN_TWO -authenticationSchema "/nsconfig/loginschema/LoginTwoProd.xml"
 #add authentication loginSchema Factor_2_LDAP -authenticationSchema noschema -passwdExpression "http.REQ.BODY(1000).AFTER_STR(\"passwd=\").BEFORE_STR(\"&\")" -SSOCredentials YES
@@ -1603,6 +1585,7 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication loginSchema / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            $values[3]=~ s/^\s+|\s$+//g;
             $login_schema{ $values[3] }
                 = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parms
                             #print $values[3]."\n";
@@ -1642,9 +1625,13 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication loginSchemaPolicy / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            $values[3]=~ s/^\s+|\s$+//g;
             $login_schema_policy{ $values[3] }
                 = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parms
-                            #print $values[3]."\n";
+            my %login_schema_policy_temp = extract_params_complex($line);
+            $login_schema_policy{ $values[3] } = {%login_schema_policy_temp};
+            print $values[3]."\n";
+            
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "<td>" . $values[7] . "</td>";
@@ -1656,11 +1643,18 @@ if ( "AAA" ~~ @features ) {
 
 #bind authentication policylabel
 #bind authentication policylabel AUTH_PL_LDAP_SECOND -policyName DEV_AUTH_POL_LDAP_SECOND -priority 100 -gotoPriorityExpression END
-#contains bindings %auth_pl_bindings
+#add authentication policylabel switch_logon -loginSchema lschema_dual_factor_deviceid
+#add authentication policylabel factor_2_ldap -loginSchema Factor_2_LDAP
+#bind authentication policylabel swift_logon -policyName AUTH_LDAP_POL -priority 90 -gotoPriorityExpression END
+#bind authentication policylabel switch_logon -policyName web_auth -priority 100 -gotoPriorityExpression NEXT
+#bind authentication policylabel factor_2_ldap -policyName AUTH_LDAP_POL -priority 100 -gotoPriorityExpression END
+
+    #contains bindings %auth_pl_bindings
     open $info, $file or die "Could not open $file: $!";
     while ( my $line = <$info> ) {
         if ( $line =~ /bind authentication policylabel/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            $values[3]=~ s/^\s+|\s$+//g;
             my @policy = ();
             $policy[0] = $values[5];    #policy name
             $policy[1] = $values[7];    #priority
@@ -1699,7 +1693,11 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication policylabel / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $login_schema_policy{ $values[3] } = $line;
+            $auth_policy_label{ $values[3] } = $line;
+            $values[3]=~ s/^\s+|\s$+//g;
+             my %this_policy = extract_params_complex($line);
+                $auth_policy_label{ $this_policy{"policy"} }
+                    = \%this_policy;              #llena el hash
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "<td></td><td></td><td></td></tr>\n";
@@ -1728,39 +1726,93 @@ if ( "AAA" ~~ @features ) {
     print $out "</table><br><br>\n";
     close $info;
 
-    open $info, $file or die "Could not open $file: $!";
+#recursive code that is not working right now.
+#if(my $var == 1212){ 
+#open $info, $file or die "Could not open $file: $!";
 
 #print $out
 #   "<h4>Recursive Call of PolicyLabels</h4></p><table border=1pt><tr><td>Policy Label</td><td>Schema/Policy</td><td>Priority</td><td>Goto</td><td>Next Factor</td></tr>\n";
-    while ( my $line = <$info> ) {
-        if ( $line =~ /add authentication policylabel / ) {
-            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $login_schema_policy{ $values[3] } = $line;
-            policy_label_table( $values[3] );
-        }
-    }
+#    while ( my $line = <$info> ) {
+#        if ( $line =~ /add authentication policylabel / ) {
+#            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+#            $login_schema_policy{ $values[3] } = $line;
+#            policy_label_table( $values[3] );
+#        }
+#    }
 
-    close $info;
+#close $info;
+#}
+
+#bind authentication vserver AUTH_VS -policy AUTH_LSP_VS_DEV_LOGIN_ONE -priority 100 -gotoPriorityExpression END
+#bind authentication vserver AUTH_VS -policy DEV_AUTH_POL_RADIUS_FIRST -priority 100 -nextFactor AUTH_PL_LDAP_SECOND -gotoPriorityExpression NEXT
+#to the VS it binds the policies and the Login schema policy.
+#bind authentication vserver
 
     open $info, $file or die "Could not open $file: $!";
     print $out
-        "</p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
+        "<h3>Authentication Bindings</h3></p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
     while ( my $line = <$info> ) {
 
-        if ( $line =~ /add authentication vserver/ ) {
+        if ( $line =~ /bind authentication vserver/ ) {
             my $aaa_lines = 0;
             my @values    = split( ' ', $line );
             my %my_aaa_vs = extract_params($line);
 
             #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
+            $values[3]=~ s/^\s+|\s$+//g;
+            print $out "<tr><td>" . $values[3] . "</td>";
+
+            print $out "<td>Policy</td><td>" . $values[5] . "</td><tr>\n";
+            if ( exists $aaa_vs{ $values[3] } ) {
+                my @aaa_vs_pols = @{ $aaa_vs{ $values[3] } };
+                my %this_policy = extract_params_complex($line);
+                $aaa_policies{ $this_policy{"policy"} }
+                    = \%this_policy;              #llena el hash
+                push @aaa_vs_pols, $this_policy{"policy"};
+                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
+
+            }
+            else {    #si es una polictica guardo la linea
+                my @aaa_vs_pols = ();
+                my %this_policy = extract_params_complex($line);
+                $aaa_policies{ $this_policy{"policy"} }
+                    = \%this_policy;    #llena el hash
+                push @aaa_vs_pols, $this_policy{"policy"};
+                $aaa_vs{ $values[3] } = \@aaa_vs_pols;
+            }
+        }
+    }
+    print $out "</table></br></br>\n";
+    close $info;
+
+    open $info, $file or die "Could not open $file: $!";
+    print $out
+        "<h3>Authentication vServer</h3></p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td></tr>\n";
+    while ( my $line = <$info> ) {
+
+        if ( $line =~ /add authentication vserver/ ) {
+            my $aaa_lines = 0;
+            my @values    = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            my %my_aaa_vs = extract_params_complex($line);
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[4] . "</td>";
             print $out "<td>" . $values[5] . "</td><tr>\n";
             my @vs_pols = @{ $aaa_vs{ $values[3] } };
+            my $i=0;
             for my $pol ( 0 .. $#vs_pols ) {
-                print $out "<tr><td>erase_me</td><td>policy</td>";
-                print $out "<td>Policy: " . $vs_pols[$pol] . "</td>";
+                print $out "<tr><td>erase_me</td><td>";
+                my $found=0;
+                chop $vs_pols[$pol];
+                if(exists $login_schema_policy{$vs_pols[$pol]})
+                {
+                	print $out "Login Schema Policy";
+                }
+                if(exists $aaa_policies_content{$vs_pols[$pol]})
+                {
+                	print $out "Auth Policy";
+                }
+                print $out "</td><td>" . $vs_pols[$pol] . "</td>";
                 ######
                 if ( exists $aaa_policies{ $vs_pols[$pol] }{"nextFactor"} ) {
                     print $out
@@ -1778,8 +1830,63 @@ if ( "AAA" ~~ @features ) {
     }
     print $out "</table><br><br>\n";
     close $info;
+	#print "################### login_schema_policy #########";
+	#print Dumper(\%aaa_policies_content);
+	#print Dumper(\%login_schema_policy);  #contains all login policy schemas
+	#print Dumper(\%auth_policy_label); #contains all policy labels
+	#print Dumper(\%aaa_policies);  #contains all policies
+}
 
-}    #close the AAA
+open $info, $file or die "Could not open $file: $!";
+print $out
+    "</p><table border=1pt><tr><td>AAA Vserver</td><td>Parameter</td><td>Value</td><td>Param</td><td>Param</td></tr>\n";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /add authentication vserver/ ) {
+        my $aaa_lines = 0;
+        my @values    = split( ' ', $line );
+        my %my_aaa_vs = extract_params($line);
+
+        #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+        $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
+        print $out "<tr><td>" . $values[3] . "</td>";
+        print $out "<td>" . $values[4] . "</td>";
+        print $out "<td>" . $values[5] . "</td><tr>\n";
+        my @vs_pols = @{ $aaa_vs{ $values[3] } };
+        for my $pol ( 0 .. $#vs_pols ) {
+            print $out "<tr><td>erase_me</td>";
+            ######
+            my $key = $vs_pols[$pol];
+            chop $key;
+            if ( exists $aaa_policies_content{ $key } )
+            {                                 #if this a policy
+                print $out "<td>Authentication Policy</td>";
+                print $out "<td>" . $vs_pols[$pol] . "</td>";
+                print $out "<td> Priority </td><td>"
+                    . $aaa_policies{ $vs_pols[$pol] }{"priority"} . "</td>";
+                print $out "<td> NextFactor </td><td>"
+                    . $aaa_policies{ $vs_pols[$pol] }{"nextFactor"} . "</td>";
+        		print $out "<td> Goto </td><td>"
+        			. $aaa_policies{ $vs_pols[$pol] }{"gotoPriorityExpression"} . "</td>";
+            }
+            else {                            #else this is a SchemaPolicy
+                print $out "<td>Schema Policy</td>";
+                print $out "<td>" . $vs_pols[$pol] . "</td>";
+                print $out "<td> Priority </td><td>"
+                    . $aaa_policies{ $vs_pols[$pol] }{"priority"}
+                    . " </td>";
+
+            }
+            ######
+            print $out "</td></tr>";
+		print "###########\n".Dumper($aaa_policies{ $vs_pols[$pol] });
+        }
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
+
+#close the AAA
 
 ##### GSLB ########################################################
 if ( "GSLB" ~~ @features ) {
