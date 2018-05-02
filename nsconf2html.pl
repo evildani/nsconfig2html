@@ -304,6 +304,34 @@ print $out "</table><br><br>\n";
 close $info;
 open $info, $file or die "Could not open $file: $!";
 
+###################### String Maps ##################
+#bind policy stringmap apps acu apps3prd
+open $info, $file or die "Could not open $file: $!";
+
+#first pass to detect servers
+#print "Server list:\n";
+print $out "<table border=1pt><tr><td>String Map</td><td>Key</td><td>Value</td><td>Msg</td>";
+if ( $has_td == 1 ) {
+    print $out "<td>TD</td>";
+}
+print $out "</tr>";
+while ( my $line = <$info> ) {
+
+    if ( $line =~ /bind policy stringmap / ) {
+        my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+        $audit_msgs{ $values[3] } = $line;
+
+        #print $values[2]."\n";
+        print $out "<tr><td>" . $values[3] . "</td>";
+        print $out "<td>" . $values[4] . "</td>";
+        print $out "<td>" . $values[5] . "</td>";
+        print $out "<tr>";
+    }
+}
+print $out "</table><br><br>\n";
+close $info;
+open $info, $file or die "Could not open $file: $!";
+
 ###################### SERVICE ##################
 print $out
     "<table border=1pt><tr><td>Service Name</td><td>Server</td><td>Port</td><td>Protocol</td>";
@@ -823,11 +851,7 @@ if ( "REWRITE" ~~ @features ) {
 ## rewrite policy ###
 
     open $info, $file or die "Could not open $file: $!";
-
-#  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
-
-    print $out
-        "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+    print $out "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
     while ( my $line = <$info> ) {
 
         if ( $line =~ /add rewrite policy/ ) {
@@ -841,6 +865,44 @@ if ( "REWRITE" ~~ @features ) {
     }
     print $out "</table><br><br>\n";
     close $info;
+    
+    if(%audit_msgs){
+    #add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
+    open $info, $file or die "Could not open $file: $!";
+    print $out "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td><td>Log Msg Action</td></tr>";
+    while ( my $line = <$info> ) {
+
+        if ( $line =~ /add rewrite policy/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr>";
+            print $out "<td>" . $values[3] . "</td>";
+            print $out "<td>" . $values[4] . "</td>";
+            print $out "<td>" . $values[5] . "</td>";
+            print $out "<td>" . $values[7] . "</td>";
+            print $out "</tr>\n";
+        }
+    }
+    print $out "</table><br><br>\n";
+    close $info;
+    }
+    
+     if(%audit_msgs){
+    #add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
+    open $info, $file or die "Could not open $file: $!";
+    print $out "<table border=1pt>";
+    while ( my $line = <$info> ) {
+
+        if ( $line =~ /add rewrite policy/ ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            print $out "<tr><td>erse_me</td><td>Rewrite Name</td><td>" . $values[3] . "</td><td>erse_me</td></tr>";
+            print $out "<tr><td>erse_me</td><td>Rewrite Policy</td><td>" . $values[4] . "</td><td>erse_me</td></tr>";
+            print $out "<tr><td>erse_me</td><td>Action</td><td>" . $values[5] . "</td><td>erse_me</td></tr>";
+            print $out "<tr><td>erse_me</td><td>Audit Mesg</td><td>" . $values[7] . "</td><td>erse_me</td></tr>";
+        }
+    }
+    print $out "</table><br><br>\n";
+    close $info;
+    }
 }
 
 ###### Responder actions################
@@ -850,15 +912,16 @@ if ( "RESPONDER" ~~ @features ) {
 #  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
 
     print $out
-        "<h3>Responder</h3><table border=1pt><tr><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
+        "<h3>Responder</h3><table border=1pt><tr><td>erase_me</td><td>Action Name</td><td>Type</td><td>Rule</td><td>Other params</td></tr>";
+    my $res_counter = 2;
     while ( my $line = <$info> ) {
 
         if ( $line =~ /add responder action/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             print $out "<tr>";
+            print $out "<td>".$res_counter."</td>";
             foreach my $n ( 0 .. $#values ) {
-                if ( $n == 0 || $n == 1 || $n == 2 ) {    ##
-                }
+            	
                 if ( $n == 3 || $n == 4 || $n == 5 ) {
                     print $out "<td>" . $values[$n] . "</td>";
                 }
@@ -868,7 +931,9 @@ if ( "RESPONDER" ~~ @features ) {
                 if ( $n > 5 ) {
                     print $out " " . $values[$n] . " ";
                 }
+                
             }
+            $res_counter++;
             print $out "</td></tr>\n";
         }
     }
@@ -880,19 +945,22 @@ if ( "RESPONDER" ~~ @features ) {
     open $info, $file or die "Could not open $file: $!";
 
 #  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
-
+my $res_ciunter = 2;
     print $out
-        "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+        "<table border=1pt><tr><td>erase_me</td><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
     while ( my $line = <$info> ) {
 
         if ( $line =~ /add responder policy/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             print $out "<tr>";
+            print $out "<td>" . $res_ciunter . "</td>";
             print $out "<td>" . $values[3] . "</td>";
             print $out "<td>" . $values[4] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "</tr>\n";
+            $res_ciunter++;
         }
+        
     }
     print $out "</table><br><br>\n";
     close $info;
@@ -903,9 +971,10 @@ if ( "RESPONDER" ~~ @features ) {
 ######seccion para Content Switch policies ##############
 close $info;
 if ( "CS" ~~ @features ) {
+	#add cs policy CS_POL_TOOLS -rule "http.REQ.URL.PATH.GET(1).IS_STRINGMAP_KEY(\"tools\")" -action CS_ACT_TOOLS
     open $info, $file or die "Could not open $file: $!";
     print $out
-        "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td></tr>\n";
+        "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td><td>Action</td></tr>\n";
     while ( my $line = <$info> ) {
         if ( $line =~ /add cs policy/ ) {
             my @values = split( '\s(?=(?:[^"]|"[^"]*")*$)', $line );
@@ -915,7 +984,12 @@ if ( "CS" ~~ @features ) {
             print $out "<tr>";
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[4] . "</td>";
-            print $out "<td>" . $values[5] . "</td><tr>\n";
+            print $out "<td>" . $values[5] . "</td>";
+            if(exists $values[6] ){
+            	print $out "<td>". $values[7] ."</td></tr>";
+            }else{
+            	print $out "<td></td><tr>\n";
+            	}
         }
     }
     close $info;
@@ -1098,6 +1172,40 @@ if ( "CS" ~~ @features ) {
     }
     print $out "</table><br><br>\n";
 }
+
+#easy copy and paste version.
+close $info;
+open $info, $file or die "Could not open $file: $!";
+    print $out "<table border=1pt><tr><td>erase_me</td><td>CS Vserver Name</td><td>Policy Name</td><td>Rule</td><td>target</td></tr>\n";
+my $int_counter = 2;
+#print "CS VS Policy bindings:\n";
+#print "=======================\n".Dumper(%bindings)."\n++++++++++++++++++++";
+    for ( keys %cs_bindings ) {
+
+        #print "CS VS Pol BIND Key:  ".$_." \n";
+        my $curr_cs_vs = $_;
+        my @POLvalue   = @{ $cs_bindings{$_} };    #contiene un arreglo de las politicas unidas al VS
+        
+        for my $i ( 0 .. $#POLvalue ) {    #itero sobre las politicas de cada VS
+        	print $out "<tr><td>".$int_counter."</td><td>" . $_ . "</td>";
+            my $pol = $cs_pols{ $POLvalue[$i] };    #contiene el add cs policy
+            my @pol_values = split( ' ', $pol );
+            print $out "<td>"
+                . $POLvalue[$i]
+                . "</td><td>"
+                . $pol_values[5]
+                . "</td><td>"
+                . $cs_bindings_target{ $POLvalue[$i] }
+                . "</td></tr>";
+
+#print "RULE ".$pol_values[5]." TARGET: ".$cs_bindings_target{$POLvalue[$i]}." POLITICA ";
+#print "add policy :".$pol."\n";
+        $int_counter++;
+        }
+    }
+    print $out "</table><br><br>\n";
+
+
 
 ###############Authentication policies and actions outside NG or AAA-TM #################
 
