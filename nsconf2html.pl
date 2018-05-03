@@ -63,6 +63,7 @@ my %aaa_vs = ()
     ; #based on a vserver, what policies are bound. vserver - array(policies bound)
 my %aaa_policies = ();    #all bound policies in all vservers, for reference.
 my %aaa_policies_content = ();
+my %aaa_epa_actions      = ();
 my %login_schema_policy  = ();
 my %login_schema         = ();
 my %auth_policy_label    = ();
@@ -86,7 +87,7 @@ my %gslb_vservers         = ();
 my %gslb_vserver_bindings = ();
 my %app_fw_profiles       = ();
 
-my %audit_msgs		      = ();
+my %audit_msgs = ();
 
 #Get host name of netscaler to change output filename.
 open my $info, $file or die "Could not open $file: $!";
@@ -282,7 +283,8 @@ open $info, $file or die "Could not open $file: $!";
 
 #first pass to detect servers
 #print "Server list:\n";
-print $out "<table border=1pt><tr><td>Audit Msg</td><td>Type</td><td>Msg</td>";
+print $out
+    "<table border=1pt><tr><td>Audit Msg</td><td>Type</td><td>Msg</td>";
 if ( $has_td == 1 ) {
     print $out "<td>TD</td>";
 }
@@ -296,7 +298,7 @@ while ( my $line = <$info> ) {
         #print $values[2]."\n";
         print $out "<tr><td>" . $values[3] . "</td>";
         print $out "<td>" . $values[4] . "</td>";
-        print $out "<td>" . substr($line, 24) . "</td>";
+        print $out "<td>" . substr( $line, 24 ) . "</td>";
         print $out "<tr>";
     }
 }
@@ -310,7 +312,8 @@ open $info, $file or die "Could not open $file: $!";
 
 #first pass to detect servers
 #print "Server list:\n";
-print $out "<table border=1pt><tr><td>String Map</td><td>Key</td><td>Value</td><td>Msg</td>";
+print $out
+    "<table border=1pt><tr><td>String Map</td><td>Key</td><td>Value</td><td>Msg</td>";
 if ( $has_td == 1 ) {
     print $out "<td>TD</td>";
 }
@@ -851,7 +854,8 @@ if ( "REWRITE" ~~ @features ) {
 ## rewrite policy ###
 
     open $info, $file or die "Could not open $file: $!";
-    print $out "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
+    print $out
+        "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
     while ( my $line = <$info> ) {
 
         if ( $line =~ /add rewrite policy/ ) {
@@ -865,43 +869,54 @@ if ( "REWRITE" ~~ @features ) {
     }
     print $out "</table><br><br>\n";
     close $info;
-    
-    if(%audit_msgs){
-    #add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
-    open $info, $file or die "Could not open $file: $!";
-    print $out "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td><td>Log Msg Action</td></tr>";
-    while ( my $line = <$info> ) {
 
-        if ( $line =~ /add rewrite policy/ ) {
-            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            print $out "<tr>";
-            print $out "<td>" . $values[3] . "</td>";
-            print $out "<td>" . $values[4] . "</td>";
-            print $out "<td>" . $values[5] . "</td>";
-            print $out "<td>" . $values[7] . "</td>";
-            print $out "</tr>\n";
-        }
-    }
-    print $out "</table><br><br>\n";
-    close $info;
-    }
-    
-     if(%audit_msgs){
-    #add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
-    open $info, $file or die "Could not open $file: $!";
-    print $out "<table border=1pt>";
-    while ( my $line = <$info> ) {
+    if (%audit_msgs) {
 
-        if ( $line =~ /add rewrite policy/ ) {
-            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            print $out "<tr><td>erse_me</td><td>Rewrite Name</td><td>" . $values[3] . "</td><td>erse_me</td></tr>";
-            print $out "<tr><td>erse_me</td><td>Rewrite Policy</td><td>" . $values[4] . "</td><td>erse_me</td></tr>";
-            print $out "<tr><td>erse_me</td><td>Action</td><td>" . $values[5] . "</td><td>erse_me</td></tr>";
-            print $out "<tr><td>erse_me</td><td>Audit Mesg</td><td>" . $values[7] . "</td><td>erse_me</td></tr>";
+#add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
+        open $info, $file or die "Could not open $file: $!";
+        print $out
+            "<table border=1pt><tr><td>Policy Name</td><td>Rule</td><td>Action</td><td>Log Msg Action</td></tr>";
+        while ( my $line = <$info> ) {
+
+            if ( $line =~ /add rewrite policy/ ) {
+                my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+                print $out "<tr>";
+                print $out "<td>" . $values[3] . "</td>";
+                print $out "<td>" . $values[4] . "</td>";
+                print $out "<td>" . $values[5] . "</td>";
+                print $out "<td>" . $values[7] . "</td>";
+                print $out "</tr>\n";
+            }
         }
+        print $out "</table><br><br>\n";
+        close $info;
     }
-    print $out "</table><br><br>\n";
-    close $info;
+
+    if (%audit_msgs) {
+
+#add rewrite policy RW_POL_AUDIT_CODE_988 q/HTTP.RES.BODY(1024).CONTAINS("\"code\":988,")/ NOREWRITE -logAction AUTH_AUDIT_MSG_988
+        open $info, $file or die "Could not open $file: $!";
+        print $out "<table border=1pt>";
+        while ( my $line = <$info> ) {
+
+            if ( $line =~ /add rewrite policy/ ) {
+                my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+                print $out "<tr><td>erse_me</td><td>Rewrite Name</td><td>"
+                    . $values[3]
+                    . "</td><td>erse_me</td></tr>";
+                print $out "<tr><td>erse_me</td><td>Rewrite Policy</td><td>"
+                    . $values[4]
+                    . "</td><td>erse_me</td></tr>";
+                print $out "<tr><td>erse_me</td><td>Action</td><td>"
+                    . $values[5]
+                    . "</td><td>erse_me</td></tr>";
+                print $out "<tr><td>erse_me</td><td>Audit Mesg</td><td>"
+                    . $values[7]
+                    . "</td><td>erse_me</td></tr>";
+            }
+        }
+        print $out "</table><br><br>\n";
+        close $info;
     }
 }
 
@@ -919,9 +934,9 @@ if ( "RESPONDER" ~~ @features ) {
         if ( $line =~ /add responder action/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             print $out "<tr>";
-            print $out "<td>".$res_counter."</td>";
+            print $out "<td>" . $res_counter . "</td>";
             foreach my $n ( 0 .. $#values ) {
-            	
+
                 if ( $n == 3 || $n == 4 || $n == 5 ) {
                     print $out "<td>" . $values[$n] . "</td>";
                 }
@@ -931,7 +946,7 @@ if ( "RESPONDER" ~~ @features ) {
                 if ( $n > 5 ) {
                     print $out " " . $values[$n] . " ";
                 }
-                
+
             }
             $res_counter++;
             print $out "</td></tr>\n";
@@ -945,7 +960,7 @@ if ( "RESPONDER" ~~ @features ) {
     open $info, $file or die "Could not open $file: $!";
 
 #  add lb monitor "Prod_Ex2013_OWA" HTTP-ECV -send "GET /owa/healthcheck.htm" -recv "200 OK" -LRTM ENABLED -interval 15 -resptimeout 10 -secure YES
-my $res_ciunter = 2;
+    my $res_ciunter = 2;
     print $out
         "<table border=1pt><tr><td>erase_me</td><td>Policy Name</td><td>Rule</td><td>Action</td></tr>";
     while ( my $line = <$info> ) {
@@ -960,7 +975,7 @@ my $res_ciunter = 2;
             print $out "</tr>\n";
             $res_ciunter++;
         }
-        
+
     }
     print $out "</table><br><br>\n";
     close $info;
@@ -971,7 +986,8 @@ my $res_ciunter = 2;
 ######seccion para Content Switch policies ##############
 close $info;
 if ( "CS" ~~ @features ) {
-	#add cs policy CS_POL_TOOLS -rule "http.REQ.URL.PATH.GET(1).IS_STRINGMAP_KEY(\"tools\")" -action CS_ACT_TOOLS
+
+#add cs policy CS_POL_TOOLS -rule "http.REQ.URL.PATH.GET(1).IS_STRINGMAP_KEY(\"tools\")" -action CS_ACT_TOOLS
     open $info, $file or die "Could not open $file: $!";
     print $out
         "<table border=1pt><tr><td>Policy Name</td><td>Type</td><td>Rule</td><td>Action</td></tr>\n";
@@ -985,11 +1001,12 @@ if ( "CS" ~~ @features ) {
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[4] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
-            if(exists $values[6] ){
-            	print $out "<td>". $values[7] ."</td></tr>";
-            }else{
-            	print $out "<td></td><tr>\n";
-            	}
+            if ( exists $values[6] ) {
+                print $out "<td>" . $values[7] . "</td></tr>";
+            }
+            else {
+                print $out "<td></td><tr>\n";
+            }
         }
     }
     close $info;
@@ -1176,36 +1193,37 @@ if ( "CS" ~~ @features ) {
 #easy copy and paste version.
 close $info;
 open $info, $file or die "Could not open $file: $!";
-    print $out "<table border=1pt><tr><td>erase_me</td><td>CS Vserver Name</td><td>Policy Name</td><td>Rule</td><td>target</td></tr>\n";
+print $out
+    "<table border=1pt><tr><td>erase_me</td><td>CS Vserver Name</td><td>Policy Name</td><td>Rule</td><td>target</td></tr>\n";
 my $int_counter = 2;
+
 #print "CS VS Policy bindings:\n";
 #print "=======================\n".Dumper(%bindings)."\n++++++++++++++++++++";
-    for ( keys %cs_bindings ) {
+for ( keys %cs_bindings ) {
 
-        #print "CS VS Pol BIND Key:  ".$_." \n";
-        my $curr_cs_vs = $_;
-        my @POLvalue   = @{ $cs_bindings{$_} };    #contiene un arreglo de las politicas unidas al VS
-        
-        for my $i ( 0 .. $#POLvalue ) {    #itero sobre las politicas de cada VS
-        	print $out "<tr><td>".$int_counter."</td><td>" . $_ . "</td>";
-            my $pol = $cs_pols{ $POLvalue[$i] };    #contiene el add cs policy
-            my @pol_values = split( ' ', $pol );
-            print $out "<td>"
-                . $POLvalue[$i]
-                . "</td><td>"
-                . $pol_values[5]
-                . "</td><td>"
-                . $cs_bindings_target{ $POLvalue[$i] }
-                . "</td></tr>";
+    #print "CS VS Pol BIND Key:  ".$_." \n";
+    my $curr_cs_vs = $_;
+    my @POLvalue   = @{ $cs_bindings{$_} }
+        ;    #contiene un arreglo de las politicas unidas al VS
+
+    for my $i ( 0 .. $#POLvalue ) {    #itero sobre las politicas de cada VS
+        print $out "<tr><td>" . $int_counter . "</td><td>" . $_ . "</td>";
+        my $pol = $cs_pols{ $POLvalue[$i] };    #contiene el add cs policy
+        my @pol_values = split( ' ', $pol );
+        print $out "<td>"
+            . $POLvalue[$i]
+            . "</td><td>"
+            . $pol_values[5]
+            . "</td><td>"
+            . $cs_bindings_target{ $POLvalue[$i] }
+            . "</td></tr>";
 
 #print "RULE ".$pol_values[5]." TARGET: ".$cs_bindings_target{$POLvalue[$i]}." POLITICA ";
 #print "add policy :".$pol."\n";
         $int_counter++;
-        }
     }
-    print $out "</table><br><br>\n";
-
-
+}
+print $out "</table><br><br>\n";
 
 ###############Authentication policies and actions outside NG or AAA-TM #################
 
@@ -1683,6 +1701,37 @@ if ( "AAA" ~~ @features ) {
     print $out "</table><br><br>\n";
     close $info;
 
+#EPA for nFactor
+#add authentication epaAction OS_Version_Failure -csecexpr "sys.client_expr(\"os_0_win10_version_Win10\")" -quarantineGroup OS_Failed
+    open $info, $file or die "Could not open $file: $!";
+    print $out
+        "</p><h3>Authentication Epa Actions</h3></p><table border=1pt><tr><td>EPA Action Name</td><td>Rule</td><td>Groups</td><td>Justification</td></tr>\n";
+    while ( my $line = <$info> ) {
+        if ( $line =~ /add authentication epaAction / ) {
+            my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
+            my %my_auth_epa = extract_params_complex($line);
+            $values[3] =~ s/^\s+|\s$+//g;
+            $aaa_epa_actions{ $values[3] } = \%my_auth_epa;
+            print $out "<tr><td>"
+                . $values[3]
+                . "</td>";
+            print $out "<td>"
+                . $values[5]
+                . "</td>";
+            print $out "<td><pre>Groups";
+            if ( exists $my_auth_epa{"defaultEPAGroup"} ) {
+                print $out "\nDefault: " . $my_auth_epa{"defaultEPAGroup"} . " ";
+            }
+            if ( exists $my_auth_epa{"quarantineGroup"} ) {
+                print $out "\nQuarantine: " . $my_auth_epa{"defaultEPAGroup"};
+            }
+            print $out "</pre></td><td>Explain</td></tr>";
+        }
+
+    }
+    print $out "</table><br><br>\n";
+    close $info;
+
 #add authentication loginSchema
 #add authentication loginSchema PROD_LOGIN_TWO -authenticationSchema "/nsconfig/loginschema/LoginTwoProd.xml"
 #add authentication loginSchema Factor_2_LDAP -authenticationSchema noschema -passwdExpression "http.REQ.BODY(1000).AFTER_STR(\"passwd=\").BEFORE_STR(\"&\")" -SSOCredentials YES
@@ -1693,7 +1742,7 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication loginSchema / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $values[3]=~ s/^\s+|\s$+//g;
+            $values[3] =~ s/^\s+|\s$+//g;
             $login_schema{ $values[3] }
                 = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parms
                             #print $values[3]."\n";
@@ -1733,13 +1782,13 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /add authentication loginSchemaPolicy / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $values[3]=~ s/^\s+|\s$+//g;
+            $values[3] =~ s/^\s+|\s$+//g;
             $login_schema_policy{ $values[3] }
                 = $line;    #3 es IP, 4 es netmask y 5 en aldelante son parms
             my %login_schema_policy_temp = extract_params_complex($line);
             $login_schema_policy{ $values[3] } = {%login_schema_policy_temp};
-            print $values[3]."\n";
-            
+            print $values[3] . "\n";
+
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "<td>" . $values[7] . "</td>";
@@ -1762,7 +1811,7 @@ if ( "AAA" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /bind authentication policylabel/ ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
-            $values[3]=~ s/^\s+|\s$+//g;
+            $values[3] =~ s/^\s+|\s$+//g;
             my @policy = ();
             $policy[0] = $values[5];    #policy name
             $policy[1] = $values[7];    #priority
@@ -1770,6 +1819,7 @@ if ( "AAA" ~~ @features ) {
             $policy[3] = "";            #next factor
             my $auth_pl_policy
                 = "Policy: " . $values[5] . " Priority: " . $values[7] . " ";
+
             if ( $values[8] eq "-gotoPriorityExpression" ) {
                 $policy[2] = $values[9];    #goto value
             }
@@ -1802,10 +1852,10 @@ if ( "AAA" ~~ @features ) {
         if ( $line =~ /add authentication policylabel / ) {
             my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             $auth_policy_label{ $values[3] } = $line;
-            $values[3]=~ s/^\s+|\s$+//g;
-             my %this_policy = extract_params_complex($line);
-                $auth_policy_label{ $this_policy{"policy"} }
-                    = \%this_policy;              #llena el hash
+            $values[3] =~ s/^\s+|\s$+//g;
+            my %this_policy = extract_params_complex($line);
+            $auth_policy_label{ $this_policy{"policy"} }
+                = \%this_policy;    #llena el hash
             print $out "<tr><td>" . $values[3] . "</td>";
             print $out "<td>" . $values[5] . "</td>";
             print $out "<td></td><td></td><td></td></tr>\n";
@@ -1834,9 +1884,9 @@ if ( "AAA" ~~ @features ) {
     print $out "</table><br><br>\n";
     close $info;
 
-#recursive code that is not working right now.
-#if(my $var == 1212){ 
-#open $info, $file or die "Could not open $file: $!";
+    #recursive code that is not working right now.
+    #if(my $var == 1212){
+    #open $info, $file or die "Could not open $file: $!";
 
 #print $out
 #   "<h4>Recursive Call of PolicyLabels</h4></p><table border=1pt><tr><td>Policy Label</td><td>Schema/Policy</td><td>Priority</td><td>Goto</td><td>Next Factor</td></tr>\n";
@@ -1848,8 +1898,8 @@ if ( "AAA" ~~ @features ) {
 #        }
 #    }
 
-#close $info;
-#}
+    #close $info;
+    #}
 
 #bind authentication vserver AUTH_VS -policy AUTH_LSP_VS_DEV_LOGIN_ONE -priority 100 -gotoPriorityExpression END
 #bind authentication vserver AUTH_VS -policy DEV_AUTH_POL_RADIUS_FIRST -priority 100 -nextFactor AUTH_PL_LDAP_SECOND -gotoPriorityExpression NEXT
@@ -1868,7 +1918,7 @@ if ( "AAA" ~~ @features ) {
 
             #my @values = split( ' (?=(?:[^"]|"[^"]*")*$)', $line );
             $ldapPolicy{ $values[3] } = $line;    #guarda la lindea
-            $values[3]=~ s/^\s+|\s$+//g;
+            $values[3] =~ s/^\s+|\s$+//g;
             print $out "<tr><td>" . $values[3] . "</td>";
 
             print $out "<td>Policy</td><td>" . $values[5] . "</td><tr>\n";
@@ -1907,18 +1957,16 @@ if ( "AAA" ~~ @features ) {
             print $out "<td>" . $values[4] . "</td>";
             print $out "<td>" . $values[5] . "</td><tr>\n";
             my @vs_pols = @{ $aaa_vs{ $values[3] } };
-            my $i=0;
+            my $i       = 0;
             for my $pol ( 0 .. $#vs_pols ) {
                 print $out "<tr><td>erase_me</td><td>";
-                my $found=0;
+                my $found = 0;
                 chop $vs_pols[$pol];
-                if(exists $login_schema_policy{$vs_pols[$pol]})
-                {
-                	print $out "Login Schema Policy";
+                if ( exists $login_schema_policy{ $vs_pols[$pol] } ) {
+                    print $out "Login Schema Policy";
                 }
-                if(exists $aaa_policies_content{$vs_pols[$pol]})
-                {
-                	print $out "Auth Policy";
+                if ( exists $aaa_policies_content{ $vs_pols[$pol] } ) {
+                    print $out "Auth Policy";
                 }
                 print $out "</td><td>" . $vs_pols[$pol] . "</td>";
                 ######
@@ -1938,11 +1986,12 @@ if ( "AAA" ~~ @features ) {
     }
     print $out "</table><br><br>\n";
     close $info;
-	#print "################### login_schema_policy #########";
-	#print Dumper(\%aaa_policies_content);
-	#print Dumper(\%login_schema_policy);  #contains all login policy schemas
-	#print Dumper(\%auth_policy_label); #contains all policy labels
-	#print Dumper(\%aaa_policies);  #contains all policies
+
+    #print "################### login_schema_policy #########";
+    #print Dumper(\%aaa_policies_content);
+    #print Dumper(\%login_schema_policy);  #contains all login policy schemas
+    #print Dumper(\%auth_policy_label); #contains all policy labels
+    #print Dumper(\%aaa_policies);  #contains all policies
 }
 
 open $info, $file or die "Could not open $file: $!";
@@ -1966,18 +2015,18 @@ while ( my $line = <$info> ) {
             ######
             my $key = $vs_pols[$pol];
             chop $key;
-            if ( exists $aaa_policies_content{ $key } )
-            {                                 #if this a policy
+            if ( exists $aaa_policies_content{$key} ) {    #if this a policy
                 print $out "<td>Authentication Policy</td>";
                 print $out "<td>" . $vs_pols[$pol] . "</td>";
                 print $out "<td> Priority </td><td>"
                     . $aaa_policies{ $vs_pols[$pol] }{"priority"} . "</td>";
                 print $out "<td> NextFactor </td><td>"
                     . $aaa_policies{ $vs_pols[$pol] }{"nextFactor"} . "</td>";
-        		print $out "<td> Goto </td><td>"
-        			. $aaa_policies{ $vs_pols[$pol] }{"gotoPriorityExpression"} . "</td>";
+                print $out "<td> Goto </td><td>"
+                    . $aaa_policies{ $vs_pols[$pol] }
+                    {"gotoPriorityExpression"} . "</td>";
             }
-            else {                            #else this is a SchemaPolicy
+            else {    #else this is a SchemaPolicy
                 print $out "<td>Schema Policy</td>";
                 print $out "<td>" . $vs_pols[$pol] . "</td>";
                 print $out "<td> Priority </td><td>"
@@ -1987,7 +2036,7 @@ while ( my $line = <$info> ) {
             }
             ######
             print $out "</td></tr>";
-		print "###########\n".Dumper($aaa_policies{ $vs_pols[$pol] });
+            print "###########\n" . Dumper( $aaa_policies{ $vs_pols[$pol] } );
         }
     }
 }
