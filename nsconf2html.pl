@@ -107,7 +107,7 @@ open( $out, ">", $dir . "/" . $filename )
     or die "Cloud not open output file\n";
 
 print $out
-    "<html><head><h2>Currently only LB config is displayed in html table format<h2></head><body>";
+    "<html><head><title>".$hostname."</title><h2>Currently only LB config is displayed in html table format<h2></head><body>";
 print $out
     "<h3>Pase in MS Word using the \"Paste Specil...\" and then Unformated Text.<h3>";
 
