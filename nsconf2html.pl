@@ -53,11 +53,14 @@ my %server             = ();
 my %service            = ();
 my %vserver            = ();
 my %bindings           = ();
+my %bindings_pols      = (); #all policies bound per vserver on a list
+my %policies_bound     = (); # "vserver"+"pol", pririty
 my %cs_vserver         = ();
 my %cs_pols            = ();
 my %cs_bindings        = ();
 my %cs_bindings_target = ();
 my %cs_bindings_all    = ();
+my %af_policies        = ();
 
 my %aaa_vs = ()
     ; #based on a vserver, what policies are bound. vserver - array(policies bound)
@@ -429,6 +432,18 @@ while ( my $line = <$info> ) {
         my @values = split( ' ', $line );
         if ( exists $bindings{ $values[3] } ) {
             if ( $values[4] eq "-policyName" ) {
+            	my @pols;
+            	if (exists $bindings_pols{ $values[3] })
+            	{
+            		@pols = @{ $bindings_pols{ $values[3] }};
+            		push @pols, $values[5];
+            		$bindings_pols{ $values[3] } = \@pols;
+            	}
+            	else {
+            		push @pols, $values[5];
+            		$bindings_pols{ $values[3] } = \@pols;
+            	}
+            	$policies_bound{$values[3]."-".$values[5]} = $values[7];
                 $values[4]
                     = $values[4] . " "
                     . $values[5] . " "
@@ -442,6 +457,18 @@ while ( my $line = <$info> ) {
         else {
             my @svcs;
             if ( $values[4] eq "-policyName" ) {
+            	my @pols;
+               	if (exists $bindings_pols{ $values[3] })
+               	{
+            		@pols = @{ $bindings_pols{ $values[3] }};
+            		push @pols, $values[5];
+            		$bindings_pols{ $values[3] } = \@pols;
+            	}
+            	else {
+            		push @pols, $values[5];
+            		$bindings_pols{ $values[3] } = \@pols;
+            	}
+            	$policies_bound{$values[3]."-".$values[5]} = $values[7];
                 $values[4]
                     = $values[4] . " "
                     . $values[5] . " "
@@ -2260,11 +2287,43 @@ if ( "AppFw" ~~ @features ) {
                 . "</td><td>"
                 . $values[5]
                 . "</td><td></tr>";
-
+			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[5];   #name rule profile
         }
     }
     print $out "</table>\n";
     close $info;
+    
+    #bind appfw global IPRep_FWPol 100 END -type REQ_DEFAULT
+  	open $info, $file or die "Could not open $file: $!";
+    while ( my $line = <$info> ) {
+        if ( $line =~ /bind appfw global/ ) {
+            my @values = split( '\s(?=(?:[^"]|"[^"]*")*$)', $line );
+            $policies_bound{"global-".$key_af} = $values[4];
+			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[2];   #name rule profile
+        }
+    }
+    print $out "</table>\n";
+    close $info;
+    
+     print $out "Application Firewall Bindings Per Virtual Server</p>";    #add appfw policy
+    print $out
+        "<table border=1><tr><td>AppFw Policy</td><td>Priority</td><td>Virtual Server</td><td>Profile</td></tr>";
+    my $key_af;
+	foreach $key_af (keys(%af_policies)) {
+    	my @values = split(",", $af_policies{$key_af} );  # 0 and 2
+    	print $out "<tr><td>".$values[0]."</td>";
+    		foreach my $vs (keys(%vserver)) {
+    			if (exists $policies_bound{$vs."-".$key_af}){
+    				print $out "<td>".$policies_bound{$vs."-".$key_af}."</td><td>".$vs."</td><td>".$values[2]."</td></tr>";
+    			}
+    		}
+    	
+    	
+	}
+    print $out "</table>\n";
+    close $info;
+    
+    
 
     print $out "AppFirewall Profiles</p>";
 
