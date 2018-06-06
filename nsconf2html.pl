@@ -2273,7 +2273,7 @@ if ( "GSLB" ~~ @features ) {
 
 if ( "AppFw" ~~ @features ) {
 
-    print $out "Application Firewall Policies</p>";    #add appfw policy
+    print $out "<p>Application Firewall Policies</p>";    #add appfw policy
     print $out
         "<table border=1><tr><td>Policy</td><td><Rule></td><td>Profile</td></tr>";
     open $info, $file or die "Could not open $file: $!";
@@ -2287,7 +2287,7 @@ if ( "AppFw" ~~ @features ) {
                 . "</td><td>"
                 . $values[5]
                 . "</td><td></tr>";
-			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[5];   #name rule profile
+			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[5].",".$values[6];   #name rule profile
         }
     }
     print $out "</table>\n";
@@ -2298,22 +2298,23 @@ if ( "AppFw" ~~ @features ) {
     while ( my $line = <$info> ) {
         if ( $line =~ /bind appfw global/ ) {
             my @values = split( '\s(?=(?:[^"]|"[^"]*")*$)', $line );
-            $policies_bound{"global-".$key_af} = $values[4];
-			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[2];   #name rule profile
+            my $name = "global-".$values[3];
+            $policies_bound{$name} = $values[4];
+			#$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[2];   #name rule profile
         }
     }
     print $out "</table>\n";
     close $info;
     
-     print $out "Application Firewall Bindings Per Virtual Server</p>";    #add appfw policy
+     print $out "<p>Application Firewall Bindings Per Virtual Server</p>";    #add appfw policy
     print $out
         "<table border=1><tr><td>AppFw Policy</td><td>Priority</td><td>Virtual Server</td><td>Profile</td></tr>";
     my $key_af;
 	foreach $key_af (keys(%af_policies)) {
     	my @values = split(",", $af_policies{$key_af} );  # 0 and 2
-    	print $out "<tr><td>".$values[0]."</td>";
     		foreach my $vs (keys(%vserver)) {
     			if (exists $policies_bound{$vs."-".$key_af}){
+    			    print $out "<tr><td>".$values[0]."</td>";
     				print $out "<td>".$policies_bound{$vs."-".$key_af}."</td><td>".$vs."</td><td>".$values[2]."</td></tr>";
     			}
     		}
@@ -2323,9 +2324,20 @@ if ( "AppFw" ~~ @features ) {
     print $out "</table>\n";
     close $info;
     
-    
+       print $out "<p>Application Firewall Global Bindings</p>";    #add appfw policy
+    print $out
+        "<table border=1><tr><td>AppFw Policy</td><td>Priority</td><td>Profile</td></tr>";
+    my $key_af;
+	foreach $key_af (keys(%af_policies)) {
+    	my @values = split(",", $af_policies{$key_af} );  # 0 and 2
+    			if (exists $policies_bound{"global-".$key_af}){
+    			  print $out "<tr><td>".$key_af."</td><td>".$policies_bound{"global-".$key_af}."</td><td>".$values[2]."</td></tr>";
+    			}
+	}
+    print $out "</table>\n";
+    close $info;
 
-    print $out "AppFirewall Profiles</p>";
+    print $out "<p>AppFirewall Profiles</p>";
 
     print $out
         "<table border=1><tr><td>Profile</td><td><configs></td><td>Values</td></tr>";
