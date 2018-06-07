@@ -89,6 +89,57 @@ my %gslb_services         = ();
 my %gslb_vservers         = ();
 my %gslb_vserver_bindings = ();
 my %app_fw_profiles       = ();
+my %app_fw_prof_local     = (
+	"startURLAction" => "Start URL",
+	"crossSiteScriptingAction" => "Cross Site Scripting",
+	"SQLInjectionAction" => "SQL Injection",
+	"fieldFormatAction" => "Field Formats",
+	"bufferOverflowMaxURLLength" => "Maximum Size of URL",
+	"bufferOverflowMaxCookieLength" => "Maximum Size of Cookie",
+	"creditCardAction" => "Credit Card Safe Objects",
+	"responseContentType" => "Response Content Type",
+	"XMLDoSAction" => "XML Denial of Service",
+	"XMLSQLInjectionAction" => "XML SQL Injection",
+	"XMLXSSAction" => "XML Cross Site Scripting",
+	"XMLWSIAction" => "XML WSI Protection",
+	"XMLAttachmentAction" => "XML Attachments",
+	"XMLValidationAction" => "XML Validations",
+	"signatures" => "Signature Profile",
+	"type" => "Profile Type",
+	"bufferOverflowAction" => "Buffer Overflow",
+	"postBodyLimit" => "Maximum POST Body Limit",
+	"excludeFileUploadFromChecks" => "Exclude File Uploads from Checks",
+	"multipleHeaderAction" => "HTTP Header Checks",
+	"useHTMLErrorObject" => "Use HTML Error Page",
+	"HTMLErrorObject" => "HTML Error Object",
+	"CSRFtagAction" => "Cross Site Request Forgery",
+	"startURLClosure" => "Start URL Closure Enformence",
+	"denyURLAction" => "Deny URL",
+	"RefererHeaderCheck" => "HTTP Referer Header Check",
+	"cookieConsistencyAction" => "Coockie Consistency",
+	"cookieTransforms" => "Transform Safe-Cookie ",
+	"cookieProxying" => "Proxy Cookie",
+	"fieldConsistencyAction" => "Field Consistency Check",
+	"crossSiteScriptingTransformUnsafeHTML" => "Cross Site Scripting Transform Unsafe HTML",
+	"crossSiteScriptingCheckCompleteURLs" => "Cross Site Scripting Check Complete URLs",
+	"SQLInjectionTransformSpecialChars" => "SQL Injection Transform Special Chars",
+	"SQLInjectionType" => "SQL Injection Type",
+	"SQLInjectionCheckSQLWildChars" => "SQL Injection Check SQL Wild Chars",
+		"defaultFieldFormatType" => "Default Field Format Type",
+	"defaultFieldFormatMinLength" => "Default Field Format Minimum Length",
+		"defaultFieldFormatMaxLength " => "Default Field Format Maximum Length",
+	"canonicalizeHTMLResponse" => "Canonicalize HTML Responses",
+		"enableFormTagging" => "Enable Form Tagging",
+	"sessionlessFieldConsistency" => "Sessionless Field Consistency",
+		"sessionlessURLClosure" => "Sessionless URLClosure",
+	"semicolonFieldSeparator" => "Semicolon Field Separator",
+	"SQLInjectionParseComments" => "SQL Injection ParseComments",
+		"invalidPercentHandling " => "Invalid Percent Handling",
+	"URLDecodeRequestCookies" => "URL Decode Request Cookies",
+	"contentTypeAction" => "Content Type",
+	"XMLFormatAction" => "XML Format",
+	"XMLSOAPFaultAction" => "XML SOAP Fault"
+	);
 
 my %audit_msgs = ();
 
@@ -2228,7 +2279,7 @@ if ( "GSLB" ~~ @features ) {
     }
     close $info;
 
-    print $out "GSLB Vserver</p>";
+    print $out "<p>GSLB Vserver</p>";
 
 #used to print the glsb vservers
 #gslb_vservers
@@ -2286,7 +2337,7 @@ if ( "AppFw" ~~ @features ) {
                 . $values[4]
                 . "</td><td>"
                 . $values[5]
-                . "</td><td></tr>";
+                . "</td></tr>";
 			$af_policies{$values[3]} = $values[3].",".$values[4].",".$values[5].",".$values[6];   #name rule profile
         }
     }
@@ -2338,24 +2389,25 @@ if ( "AppFw" ~~ @features ) {
     close $info;
 
     print $out "<p>AppFirewall Profiles</p>";
-
+	my $counter = 1;
     print $out
-        "<table border=1><tr><td>Profile</td><td><configs></td><td>Values</td></tr>";
+        "<table border=1><tr><td>".$counter++."</td><td>Profile</td><td>Security Check</td><td>Values</td></tr>";
     open $info, $file or die "Could not open $file: $!";
     while ( my $line = <$info> ) {
         if ( $line =~ /add appfw profile/ ) {
             my @values = split( ' ', $line );
             my @params = split( '-(?=(?:[^"]|"[^"]*")*$)', $line );
-            print $out "<tr><td>"
+            print $out "<tr><td>".$counter++."</td><td>"
                 . $values[3]
-                . "</td><td></td><td></td></tr>";
+                . "</td><td>erase_me</td><td>erase_me</td></tr>";
             my $count = 0;
             foreach my $i (@params) {
                 if ( $count > 0 ) {
-                    print $out "<tr><td></td><td>";
+                    print $out "<tr><td>".$counter++."</td><td>erase_me</td><td>";
                     my @temp = split( ' ', $i, 2 );
                     print $out " "
-                        . $temp[0]
+                        . $app_fw_prof_local{$temp[0]}
+                        #." - ".$temp[0]   #uncomment if TS parameters in the AppFW Profile
                         . "</td><td>"
                         . $temp[1]
                         . "</td></tr>";
